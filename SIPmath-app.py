@@ -74,12 +74,13 @@ if uploaded_file != None:
                                                            
         if boundedness == "'b' - bounded on both sides":
             #convert to int and list
-            bounds = st.sidebar.text_input('Lower Bound', '0',key=f"{name}_lower")
-            bounds = st.sidebar.text_input('Upper Bound', '1',key=f"{name}_upper")
+            boundsl = st.sidebar.text_input('Lower Bound', '0',key=f"{name}_lower")
+            boundsu = st.sidebar.text_input('Upper Bound', '1',key=f"{name}_upper")
+            bounds = [int(boundsl),int(boubdsu)]
         elif boundedness.find("lower") != -1:
-            bounds = st.sidebar.text_input('Lower Bound', '0',key=f"{name}_lower")
+            bounds = [int(st.sidebar.text_input('Lower Bound', '0',key=f"{name}_lower"))]
         elif boundedness.find("upper") != -1:
-            bounds = st.sidebar.text_input('Upper Bound', '1',key=f"{name}_upper")
+            bounds = [int(st.sidebar.text_input('Upper Bound', '1',key=f"{name}_upper"))]
         else:
             bounds = [0,1]
             
