@@ -1,4 +1,4 @@
-git+https://github.com/probability-management/PySIPmath
+git+https://github.com/knownboyofno/PySIPmath
 alabaster==0.7.12
 altair==4.1.0
 argon2-cffi==21.1.0
@@ -110,4 +110,3 @@ webencodings==0.5.1
 widgetsnbextension==3.5.2
 XlsxWriter==3.0.2
 yarg==0.1.9
-
