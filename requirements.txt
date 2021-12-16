@@ -1,4 +1,4 @@
-git+https://github.com/knownboyofno/PySIPmath
+git+https://github.com/knownboyofno/PySIPmath@testing
 alabaster==0.7.12
 altair==4.1.0
 argon2-cffi==21.1.0
