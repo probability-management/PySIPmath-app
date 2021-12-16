@@ -56,7 +56,7 @@ def plot(m, norm=True):
             current_term = (2 + (i - 2)*3 + j) 
             if results_len + 2 > current_term and m['Validation']['valid'][current_term] == 'yes':# Check to make sure it is valid before plotting.
                 # Plotting PDF
-                ax[i-2, j].plot(InitialResults[str(i) + ' Terms']['quantileValues'], InitialResults[str(i) + ' Terms']['pdfValues'],
+                ax[i-2, j].plot(InitialResults[str(current_term) + ' Terms']['quantileValues'], InitialResults[str(current_term) + ' Terms']['pdfValues'],
                       linewidth=2,c='darkblue')
 
                 # Plotting CDF
