@@ -130,7 +130,7 @@ def preprocess_charts(x,
                        # bounds)
 	mfitted = metalog.fit(x, bounds = bounds, boundedness = boundedness, fit_method='OLS', term_limit = len(x), probs=probs)
     #Create graphs
-	# plot(mfitted)
+	plot(mfitted)
 	st.write(mfitted.keys())
 	st.write(mfitted)
 	st.write(mfitted['M'])
