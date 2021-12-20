@@ -130,12 +130,12 @@ def preprocess_charts(x,
                        # bounds)
 	mfitted = metalog.fit(x, bounds = bounds, boundedness = boundedness, fit_method='OLS', term_limit = len(x), probs=probs)
     #Create graphs
-	plot(mfitted)
-	# st.write(mfitted.keys())
-	# st.write(mfitted)
-	# st.write(mfitted['M'])
-	# st.write(mfitted["dataValues"])
-	# st.write(mfitted['Validation'])
+	# plot(mfitted)
+	st.write(mfitted.keys())
+	st.write(mfitted)
+	st.write(mfitted['M'])
+	st.write(mfitted["dataValues"])
+	st.write(mfitted['Validation'])
 
 def sent_to_pastebin(filename,file):
     payload = {"api_dev_key" : '7lc7IMiM_x5aMUFFudCiCo35t4o0Sxx6',
