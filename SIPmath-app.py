@@ -8,17 +8,27 @@ import requests
 import numpy as np
 from metalog import metalog
 import matplotlib.pyplot as plt
-    
-image = Image.open('PM_logo_transparent.png')
+import warnings
+warnings.filterwarnings('ignore')
 
+# PM_logo = Image.open('PM_logo.png')
+# Metalog_Distribution = Image.open('Metalog Distribution.png')
+# HDR_Generator = Image.open('HDR Generator.png')
+# SIPmath_Standard = Image.open('SIPmath Standard.png')
+image = Image.open('PM_logo_transparent.png')
+st.set_page_config(page_title="SIPmath™ 3.0 Library Generator", page_icon=None, layout="wide", initial_sidebar_state="auto", menu_items=None)
 images_container = st.container()
 images_cols = images_container.columns(5)
+images_container.header("SIPmath™ 3.0 Library Generator")
 images_container.image(image,width=1000)
 main_container = st.empty()
-table_container = st.container()
+empty_table = st.empty()
+table_container = empty_table.container()
+slider_container = st.container()
 graphs_container = st.empty().container()
 #Taken from the metalog
-def plot(m, big_plots=None,csv=None):
+# @st.cache(suppress_st_warning=True)
+def plot(m, big_plots=None,csv=None,term=None,name=None):
     
     # Collecting data to set limits of axes
     res_data = pd.DataFrame({'term': np.repeat(str(m['params']['term_lower_bound']) \
@@ -60,29 +70,54 @@ def plot(m, big_plots=None,csv=None):
     if big_plots:
         fig, ax = plt.subplots(1, 2, figsize=(4, 2), sharex='col')
         # i = 2
-        for i in range(results_len+1,1,-1):
-            if m['Validation']['valid'][i] == 'yes':
-                j = 0
-                # Plotting PDF
-                ax[j].plot(InitialResults[str(i) + ' Terms']['quantileValues'], InitialResults[str(i) + ' Terms']['pdfValues'],
-                      linewidth=2,c='darkblue')
-                # Plot data 
-                ax[j + 1].scatter(m["dataValues"]['x'],m["dataValues"]['probs'],c='white',edgecolor='black')
-                # Plotting CDF
-                ax[j + 1].plot(InitialResults[str(i) + ' Terms']['quantileValues'], InitialResults[str(i) + ' Terms']['cumValue'],
-                      linewidth=2,c='darkblue')
-                ax[j].patch.set_facecolor('white')
-                ax[j].axes.xaxis.set_ticks([])     
-                ax[j].axes.yaxis.set_ticks([])     
-                ax[j + 1].patch.set_facecolor('white')
-                ax[j + 1].axes.xaxis.set_ticks([])     
-                ax[j + 1].axes.yaxis.set_ticks([])     
-                ax[j].set(title=str(i) + ' Terms', ylabel='PDF', xlabel='Quantiles')
-                ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF', xlabel='Quantiles')
-                break
+        if term is None:
+            for i in range(results_len+1,1,-1):
+                if m['Validation']['valid'][i] == 'yes':
+                    j = 0
+                    # Plotting PDF
+                    ax[j].plot(InitialResults[str(i) + ' Terms']['quantileValues'], InitialResults[str(i) + ' Terms']['pdfValues'],
+                          linewidth=2, label=str(i) + ' Terms')
+                    # Plot data 
+                    ax[j + 1].scatter(m["dataValues"]['x'],m["dataValues"]['probs'],c='white',edgecolor='black', label=f'{name} Data')
+                    # Plotting CDF
+                    ax[j + 1].plot(InitialResults[str(i) + ' Terms']['quantileValues'], InitialResults[str(i) + ' Terms']['cumValue'],
+                          linewidth=2, label=str(i) + ' Terms')
+                    ax[j].patch.set_facecolor('white')
+                    ax[j].axes.xaxis.set_ticks([])     
+                    ax[j].axes.yaxis.set_ticks([])     
+                    ax[j + 1].patch.set_facecolor('white')
+                    ax[j + 1].axes.xaxis.set_ticks([])     
+                    ax[j + 1].axes.yaxis.set_ticks([])     
+                    ax[j].set(title=str(i) + ' Terms', ylabel='PDF', xlabel='Quantiles')
+                    ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF', xlabel='Quantiles')
+                    break
+        else:
+            for i in range(2,term+1):
+                if m['Validation']['valid'][i] == 'yes':
+                    j = 0
+                    # Plotting PDF
+                    ax[j].plot(InitialResults[str(i) + ' Terms']['quantileValues'], InitialResults[str(i) + ' Terms']['pdfValues'],
+                          linewidth=2)
+                    # Plot data 
+                    ax[j + 1].scatter(m["dataValues"]['x'],m["dataValues"]['probs'],c='white',edgecolor='black')
+                    # Plotting CDF
+                    ax[j + 1].plot(InitialResults[str(i) + ' Terms']['quantileValues'], InitialResults[str(i) + ' Terms']['cumValue'],
+                          linewidth=2)
+                    ax[j].patch.set_facecolor('white')
+                    ax[j].axes.xaxis.set_ticks([])     
+                    ax[j].axes.yaxis.set_ticks([])     
+                    ax[j + 1].patch.set_facecolor('white')
+                    ax[j + 1].axes.xaxis.set_ticks([])     
+                    ax[j + 1].axes.yaxis.set_ticks([])     
+                    ax[j].legend()
+                    ax[j + 1].legend()
+                    ax[j].set(title=str(i) + ' Terms', ylabel='PDF', xlabel='Quantiles')
+                    ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF', xlabel='Quantiles')
+                    # break
         plt.tight_layout()
         graphs_container.pyplot(plt)
-        plt.clf()
+        
+        # plt.clf()
                        # ax[i-2, j].patch.set(title=str(current_term) + ' Terms', ylabel='PDF', xlabel='Quantiles')
                           
                               
@@ -170,7 +205,8 @@ def preprocess_charts(x,
                                        bounds,
                                        big_plots,
                                        terms,
-                                       csv):
+                                       csv,
+                                       name):
 	#Create metalog
 	# st.write(boundedness,
                        # bounds)
@@ -182,7 +218,11 @@ def preprocess_charts(x,
 	# st.write(mfitted["dataValues"])
 	# st.write(mfitted['Validation'])
     # big_plots = st.sidebar.checkbox("Big Graphs?")
-	plot(mfitted,big_plots,csv)
+	if big_plots:
+	    term = graphs_container.slider(f"Select {name} Terms: ",2,terms,key=f"{name} term slider")
+	else:
+	    term = 16
+	plot(mfitted,big_plots,csv,term,name=name)
 
 def sent_to_pastebin(filename,file):
     payload = {"api_dev_key" : '7lc7IMiM_x5aMUFFudCiCo35t4o0Sxx6',
@@ -201,14 +241,17 @@ def make_csv_graph(series,
                                        boundedness,
                                        bounds,
                                        big_plots):
-    graphs_container.header(series.name)
+    if big_plots:
+        graphs_container.header(series.name)
     preprocess_charts(series.to_list(),
                                     probs,
                                     boundedness,
                                     bounds,
                                     big_plots,
                                     16,
-                                    True)
+                                    True,
+                                    series.name)
+                                    
     return None
 
 def input_data(name,i,df,probs=None):
@@ -219,7 +262,7 @@ def input_data(name,i,df,probs=None):
     else:
         max_val = df.shape[0]
         default_val = max_val
-    st.write("If the data above appears correct, please enter your parameters in the sidebar for this file.")
+    table_container.write("If the data above appears correct, please enter your parameters in the sidebar for this file.")
     with st.sidebar.expander("See JSON Options"):
         filename = st.text_input(f'Filename {i+1}', name+'.SIPmath',key=f"{name}_{i}_filename")
         author = st.text_input(f'Author for {filename}', 'Unknown',key=f"{name}_author")
@@ -283,8 +326,8 @@ if data_type == 'CSV File':
             # [for x in i]
             name = file.name.replace(".csv","")
             # with main_contanier.contanier():
-            main_container.subheader(f"Preview for {name}")
-            main_container.write(input_df[:10].to_html(index=False), unsafe_allow_html=True)
+            table_container.subheader(f"Preview for {name}")
+            # table_container.write(input_df[:10].to_html(index=False), unsafe_allow_html=True)
         if isinstance(input_df, pd.DataFrame):
             quanile_container = st.sidebar.container()
             # quanile_container.subheader("Please Enter Values Below:")
@@ -307,13 +350,23 @@ if data_type == 'CSV File':
                 bounds = [0,1]
                 
             boundedness = boundedness.strip().split(" - ")[0].replace("'","")
-            big_plots = quanile_container.checkbox("Big Graphs?",value=True)
-            if quanile_container.button("Make Graphs") or all(input_df.any()):
-                input_df.apply(make_csv_graph,
-                                               probs = np.nan,
-                                               boundedness = boundedness,
-                                               bounds = bounds,
-                                               big_plots = big_plots)
+            big_plots = quanile_container.checkbox("Big Graphs?",value=False)
+            make_graphs_checkbox = quanile_container.button("Make Graphs")
+            if make_graphs_checkbox or all(input_df.any()):
+                if big_plots:
+                    # if not "selected_column" in locals():
+                        # empty_table.empty()
+                    selected_column = graphs_container.selectbox("Select Column:", input_df.columns,key="Big Graph Column")
+                    input_df[[selected_column]].apply(make_csv_graph,
+                                                   probs = np.nan,
+                                                   boundedness = boundedness,
+                                                   bounds = bounds,
+                                                   big_plots = big_plots)
+                # input_df.apply(make_csv_graph,
+                                               # probs = np.nan,
+                                               # boundedness = boundedness,
+                                               # bounds = bounds,
+                                               # big_plots = big_plots)
                 input_data(name,i,input_df)
     else:
         input_df = pd.DataFrame()
@@ -378,6 +431,7 @@ elif data_type == 'Quantile':
                                         bounds,
                                         big_plots,
                                         pd_data.shape[0],
-                                        False)
+                                        False,
+                                        pd_data['x'].name)
         # pass
     input_data("Unknown",0,pd_data[['x']],pd_data['y'].to_list())
