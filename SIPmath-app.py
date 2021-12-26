@@ -11,16 +11,22 @@ import matplotlib.pyplot as plt
 import warnings
 warnings.filterwarnings('ignore')
 
-# PM_logo = Image.open('PM_logo.png')
-# Metalog_Distribution = Image.open('Metalog Distribution.png')
-# HDR_Generator = Image.open('HDR Generator.png')
-# SIPmath_Standard = Image.open('SIPmath Standard.png')
-image = Image.open('PM_logo_transparent.png')
+PM_logo = Image.open('images\PM_logo.png')
+Metalog_Distribution = Image.open('images\Metalog Distribution.png')
+HDR_Generator = Image.open('images\HDR Generator.png')
+SIPmath_Standard = Image.open('images\SIPmath Standard.png')
+# image = Image.open('PM_logo_transparent.png')
 st.set_page_config(page_title="SIPmath™ 3.0 Library Generator", page_icon=None, layout="wide", initial_sidebar_state="auto", menu_items=None)
 images_container = st.container()
-images_cols = images_container.columns(5)
-images_container.header("SIPmath™ 3.0 Library Generator")
-images_container.image(image,width=1000)
+images_cols = images_container.columns([0.75,1.25,0.3,0.3,0.35])
+images_cols[0].markdown("[![Probability Management](https://images.squarespace-cdn.com/content/v1/5a4f82d7a8b2b04080732f87/1590000132586-Q3BM496CR13EESETZTR6/PM_logo_transparent.png?format=150w)](https://www.probabilitymanagement.org/)")
+images_cols[4].markdown("[![Metalog Distribution](https://images.squarespace-cdn.com/content/v1/5a4f82d7a8b2b04080732f87/1619026311825-CR5I84A3ZD58DNE604NC/Metalogs.png?format=100w)](https://www.probabilitymanagement.org/metalog) Metalog\nDistribution")
+images_cols[1].header("SIPmath™ 3.0 Library Generator")
+images_cols[3].markdown("""[![HDR Generator](https://images.squarespace-cdn.com/content/v1/5a4f82d7a8b2b04080732f87/1619038789110-RGU809AE2A6JFLVVHTH4/HDR.png)](https://www.probabilitymanagement.org/hdr) 
+\nHDR\nGenerator""")
+images_cols[2].markdown("[![SIPmath Standard](https://images.squarespace-cdn.com/content/v1/5a4f82d7a8b2b04080732f87/1631227023221-SOKANKYGE29JXUD3PB7E/SIPmath+Standard+reversed.png?format=100w)](https://www.probabilitymanagement.org/30-standard) SIPmath\nStandard")
+# images_container
+# images_container.image(image,width=1000)
 main_container = st.empty()
 empty_table = st.empty()
 table_container = empty_table.container()
@@ -97,7 +103,7 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                     j = 0
                     # Plotting PDF
                     ax[j].plot(InitialResults[str(i) + ' Terms']['quantileValues'], InitialResults[str(i) + ' Terms']['pdfValues'],
-                          linewidth=2)
+                          linewidth=2,label=f'{i} Terms')
                     # Plot data 
                     ax[j + 1].scatter(m["dataValues"]['x'],m["dataValues"]['probs'],c='white',edgecolor='black')
                     # Plotting CDF
@@ -109,12 +115,13 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                     ax[j + 1].patch.set_facecolor('white')
                     ax[j + 1].axes.xaxis.set_ticks([])     
                     ax[j + 1].axes.yaxis.set_ticks([])     
-                    ax[j].legend()
-                    ax[j + 1].legend()
+                    ax[j].legend(loc='upper center', bbox_to_anchor=(0, -0.5), fancybox=True, shadow=True,ncol=round(i/3))
+                    # ax[j + 1].legend([str(i) + ' Terms'])
                     ax[j].set(title=str(i) + ' Terms', ylabel='PDF', xlabel='Quantiles')
                     ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF', xlabel='Quantiles')
                     # break
-        plt.tight_layout()
+        # ax[0].legend()
+        plt.tight_layout(rect=[0,0,0.75,1])
         graphs_container.pyplot(plt)
         
         # plt.clf()
