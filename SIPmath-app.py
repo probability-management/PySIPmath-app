@@ -18,13 +18,12 @@ SIPmath_Standard = Image.open('images\SIPmath Standard.png')
 # image = Image.open('PM_logo_transparent.png')
 st.set_page_config(page_title="SIPmath™ 3.0 Library Generator", page_icon=None, layout="wide", initial_sidebar_state="auto", menu_items=None)
 images_container = st.container()
-images_cols = images_container.columns([0.75,1.25,0.3,0.3,0.35])
-images_cols[0].markdown("[![Probability Management](https://images.squarespace-cdn.com/content/v1/5a4f82d7a8b2b04080732f87/1590000132586-Q3BM496CR13EESETZTR6/PM_logo_transparent.png?format=150w)](https://www.probabilitymanagement.org/)")
-images_cols[4].markdown("[![Metalog Distribution](https://images.squarespace-cdn.com/content/v1/5a4f82d7a8b2b04080732f87/1619026311825-CR5I84A3ZD58DNE604NC/Metalogs.png?format=100w)](https://www.probabilitymanagement.org/metalog) Metalog\nDistribution")
+images_cols = images_container.columns([0.75,1.25,0.3,0.25,0.3])
+images_cols[0].markdown("##### [![Probability Management](https://images.squarespace-cdn.com/content/v1/5a4f82d7a8b2b04080732f87/1590000132586-Q3BM496CR13EESETZTR6/PM_logo_transparent.png?format=150w)](https://www.probabilitymanagement.org/)")
+images_cols[4].markdown("##### [![Metalog Distribution](https://images.squarespace-cdn.com/content/v1/5a4f82d7a8b2b04080732f87/1619026311825-CR5I84A3ZD58DNE604NC/Metalogs.png?format=100w)](https://www.probabilitymanagement.org/metalog)  Metalog Distribution")
 images_cols[1].header("SIPmath™ 3.0 Library Generator")
-images_cols[3].markdown("""[![HDR Generator](https://images.squarespace-cdn.com/content/v1/5a4f82d7a8b2b04080732f87/1619038789110-RGU809AE2A6JFLVVHTH4/HDR.png)](https://www.probabilitymanagement.org/hdr) 
-\nHDR\nGenerator""")
-images_cols[2].markdown("[![SIPmath Standard](https://images.squarespace-cdn.com/content/v1/5a4f82d7a8b2b04080732f87/1631227023221-SOKANKYGE29JXUD3PB7E/SIPmath+Standard+reversed.png?format=100w)](https://www.probabilitymanagement.org/30-standard) SIPmath\nStandard")
+images_cols[3].markdown("##### [![HDR Generator](https://images.squarespace-cdn.com/content/v1/5a4f82d7a8b2b04080732f87/1619038789110-RGU809AE2A6JFLVVHTH4/HDR.png)](https://www.probabilitymanagement.org/hdr) HDR Generator")
+images_cols[2].markdown("##### [![SIPmath Standard](https://images.squarespace-cdn.com/content/v1/5a4f82d7a8b2b04080732f87/1631227023221-SOKANKYGE29JXUD3PB7E/SIPmath+Standard+reversed.png?format=100w)](https://www.probabilitymanagement.org/30-standard) SIPmath Standard")
 # images_container
 # images_container.image(image,width=1000)
 main_container = st.empty()
@@ -59,7 +58,9 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
             'quantileValues': m['M'].iloc[:, 1],
             'cumValue': m['M']['y']
             })
-    
+    axis_limits = {'pdfValues':[0,0],
+                            'quantileValues':[0,0]
+                            }
     if m['M'].shape[-1] > 3:
         for i in range(2, len(m['M'].iloc[0, ] - 1) // 2 + 1):
             InitialResults[str(m['params']['term_lower_bound'] + i - 1) + ' Terms'] = pd.DataFrame({
@@ -67,6 +68,7 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                     'quantileValues': m['M'].iloc[:, i * 2 - 1],
                     'cumValue': m['M']['y']
                     })
+            # sdflkj
     
     # ggplot style
     plt.style.use('ggplot')
@@ -89,13 +91,17 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                     ax[j + 1].plot(InitialResults[str(i) + ' Terms']['quantileValues'], InitialResults[str(i) + ' Terms']['cumValue'],
                           linewidth=2, label=str(i) + ' Terms')
                     ax[j].patch.set_facecolor('white')
-                    ax[j].axes.xaxis.set_ticks([])     
-                    ax[j].axes.yaxis.set_ticks([])     
+                    # ax[j].axes.xaxis.set_ticks([])     
+                    # ax[j].axes.yaxis.set_ticks([])     
                     ax[j + 1].patch.set_facecolor('white')
                     ax[j + 1].axes.xaxis.set_ticks([])     
-                    ax[j + 1].axes.yaxis.set_ticks([])     
-                    ax[j].set(title=str(i) + ' Terms', ylabel='PDF', xlabel='Quantiles')
-                    ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF', xlabel='Quantiles')
+                    # ax[j + 1].axes.yaxis.set_ticks([])     
+                    # ax[j].set(title=str(i) + ' Terms', ylabel='PDF', xlabel='Quantiles')
+                    # ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF', xlabel='Quantiles')
+                    ax[j].set(title=str(i) + ' Terms', ylabel='PDF')
+                    ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF')
+                    ax[j].axis([min(res_data['quantileValues']), max(res_data['quantileValues']), min(res_data["pdfValues"]), max(res_data["pdfValues"])]) 
+                    ax[j+1].axis([min(res_data['quantileValues']), max(res_data['quantileValues']), round(min(m["dataValues"]['probs']),1), round(max(m["dataValues"]['probs']),1)]) 
                     break
         else:
             for i in range(2,term+1):
@@ -110,15 +116,19 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                     ax[j + 1].plot(InitialResults[str(i) + ' Terms']['quantileValues'], InitialResults[str(i) + ' Terms']['cumValue'],
                           linewidth=2)
                     ax[j].patch.set_facecolor('white')
-                    ax[j].axes.xaxis.set_ticks([])     
-                    ax[j].axes.yaxis.set_ticks([])     
+                    # ax[j].axes.xaxis.set_ticks([])     
+                    # ax[j].axes.yaxis.set_ticks([])     
                     ax[j + 1].patch.set_facecolor('white')
-                    ax[j + 1].axes.xaxis.set_ticks([])     
-                    ax[j + 1].axes.yaxis.set_ticks([])     
-                    ax[j].legend(loc='upper center', bbox_to_anchor=(0, -0.5), fancybox=True, shadow=True,ncol=round(i/3))
+                    # ax[j + 1].axes.xaxis.set_ticks([])     
+                    # ax[j + 1].axes.yaxis.set_ticks([])     
+                    # ax[j].legend(loc='upper center', bbox_to_anchor=(1, -0.05), fancybox=True, shadow=True,ncol=5)
                     # ax[j + 1].legend([str(i) + ' Terms'])
-                    ax[j].set(title=str(i) + ' Terms', ylabel='PDF', xlabel='Quantiles')
-                    ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF', xlabel='Quantiles')
+                    ax[j].axis([min(res_data['quantileValues']), max(res_data['quantileValues']), min(res_data["pdfValues"]), max(res_data["pdfValues"])]) 
+                    ax[j+1].axis([min(res_data['quantileValues']), max(res_data['quantileValues']), round(min(m["dataValues"]['probs']),1), round(max(m["dataValues"]['probs']),1)]) 
+                    # ax[j].set(title=str(i) + ' Terms', ylabel='PDF', xlabel='Quantiles')
+                    # ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF', xlabel='Quantiles')
+                    ax[j].set(title=str(i) + ' Terms', ylabel='PDF')
+                    ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF')
                     # break
         # ax[0].legend()
         plt.tight_layout(rect=[0,0,0.75,1])
@@ -219,11 +229,11 @@ def preprocess_charts(x,
                        # bounds)
 	mfitted = metalog.fit(x, bounds = bounds, boundedness = boundedness, fit_method='OLS', term_limit = terms, probs=probs)
     #Create graphs
-	# st.write(mfitted.keys())
-	# st.write(mfitted)
-	# st.write(mfitted['M'])
-	# st.write(mfitted["dataValues"])
-	# st.write(mfitted['Validation'])
+	st.write(mfitted.keys())
+	st.write(mfitted)
+	st.write(mfitted['M'])
+	st.write(mfitted["dataValues"])
+	st.write(mfitted['Validation'])
     # big_plots = st.sidebar.checkbox("Big Graphs?")
 	if big_plots:
 	    term = graphs_container.slider(f"Select {name} Terms: ",2,terms,key=f"{name} term slider")
