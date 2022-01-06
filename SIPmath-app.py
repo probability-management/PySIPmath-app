@@ -35,6 +35,10 @@ graphs_container = st.empty().container()
 # @st.cache(suppress_st_warning=True)
 def plot(m, big_plots=None,csv=None,term=None,name=None):
     
+    if csv:
+      key = 'csv'
+    else:
+      key = 'quantile'
     # Collecting data to set limits of axes
     res_data = pd.DataFrame({'term': np.repeat(str(m['params']['term_lower_bound']) \
                                                      + ' Terms', len(m['M'].iloc[:, 0])),
@@ -44,12 +48,13 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                                    })
     if m['M'].shape[-1] > 3:
         for i in range(2, len(m['M'].iloc[0, ] - 1) // 2 + 1):
-            temp_data = pd.DataFrame({'term': np.repeat(str(m['params']['term_lower_bound'] + i - 1) \
-                                                          + ' Terms', len(m['M'].iloc[:, 0])),
-                                        'pdfValues': m['M'].iloc[:, i * 2 - 2],
-                                        'quantileValues': m['M'].iloc[:, i * 2 - 1],
-                                        'cumValue': m['M']['y']})
-            res_data = pd.concat([res_data, temp_data], ignore_index=True)
+            if m['Validation']['valid'][i] == 'yes':
+                temp_data = pd.DataFrame({'term': np.repeat(str(m['params']['term_lower_bound'] + i - 1) \
+                                                              + ' Terms', len(m['M'].iloc[:, 0])),
+                                            'pdfValues': m['M'].iloc[:, i * 2 - 2],
+                                            'quantileValues': m['M'].iloc[:, i * 2 - 1],
+                                            'cumValue': m['M']['y']})
+                res_data = pd.concat([res_data, temp_data], ignore_index=True)
     
     # Collecting data into dictionary
     InitialResults = {}
@@ -58,9 +63,6 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
             'quantileValues': m['M'].iloc[:, 1],
             'cumValue': m['M']['y']
             })
-    axis_limits = {'pdfValues':[0,0],
-                            'quantileValues':[0,0]
-                            }
     if m['M'].shape[-1] > 3:
         for i in range(2, len(m['M'].iloc[0, ] - 1) // 2 + 1):
             InitialResults[str(m['params']['term_lower_bound'] + i - 1) + ' Terms'] = pd.DataFrame({
@@ -68,15 +70,17 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                     'quantileValues': m['M'].iloc[:, i * 2 - 1],
                     'cumValue': m['M']['y']
                     })
-            # sdflkj
     
     # ggplot style
     plt.style.use('ggplot')
+    max_valid_term = m['Validation'][m['Validation']['valid'] == 'yes']['term'].max()
     
     results_len = len(InitialResults)
     # fig, ax = plt.subplots(results_len, 2, figsize=(8, 3*results_len), sharex='col')
     if big_plots:
-        fig, ax = plt.subplots(1, 2, figsize=(4, 2), sharex='col')
+        fig, ax = plt.subplots(1, 2, figsize=(10, 3), sharex='col')    
+        # if st.session_state['mfitted'][key][name]['fit']
+        # fig, ax = plt.subplots(1, 2, figsize=(4, 2), sharex='col')        
         # i = 2
         if term is None:
             for i in range(results_len+1,1,-1):
@@ -100,11 +104,16 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                     # ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF', xlabel='Quantiles')
                     ax[j].set(title=str(i) + ' Terms', ylabel='PDF')
                     ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF')
-                    ax[j].axis([min(res_data['quantileValues']), max(res_data['quantileValues']), min(res_data["pdfValues"]), max(res_data["pdfValues"])]) 
+                    ax[j].axis([min(res_data['quantileValues']), max(res_data['quantileValues']), 0, max(res_data["pdfValues"])]) 
                     ax[j+1].axis([min(res_data['quantileValues']), max(res_data['quantileValues']), round(min(m["dataValues"]['probs']),1), round(max(m["dataValues"]['probs']),1)]) 
+                    # if 'big plots' not in st.session_state['mfitted'][key][name]['plot']:
+                        # st.session_state['mfitted'][key][name]['plot']['big plot'] = plt 
+                        # return                        
                     break
         else:
-            for i in range(2,term+1):
+            terms_for_loop = [term, max_valid_term]
+            # for i in range(2,term+1):
+            for i in terms_for_loop :
                 if m['Validation']['valid'][i] == 'yes':
                     j = 0
                     # Plotting PDF
@@ -117,18 +126,27 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                           linewidth=2)
                     ax[j].patch.set_facecolor('white')
                     # ax[j].axes.xaxis.set_ticks([])     
-                    # ax[j].axes.yaxis.set_ticks([])     
+                    ax[j].axes.yaxis.set_ticks([])     
                     ax[j + 1].patch.set_facecolor('white')
                     # ax[j + 1].axes.xaxis.set_ticks([])     
-                    # ax[j + 1].axes.yaxis.set_ticks([])     
-                    # ax[j].legend(loc='upper center', bbox_to_anchor=(1, -0.05), fancybox=True, shadow=True,ncol=5)
+                    ax[j + 1].axes.yaxis.set_ticks([])     
+                    # ax[j].legend(loc='upper center', bbox_to_anchor=(1.05, 0.05), fancybox=True, shadow=True,ncol=2)
+                    # ax[j].legend(loc='upper center',ncol=2)
                     # ax[j + 1].legend([str(i) + ' Terms'])
-                    ax[j].axis([min(res_data['quantileValues']), max(res_data['quantileValues']), min(res_data["pdfValues"]), max(res_data["pdfValues"])]) 
+                    # ax[j].axis([min(res_data['quantileValues']), max(res_data['quantileValues']), 0, max(res_data["pdfValues"])]) 
                     ax[j+1].axis([min(res_data['quantileValues']), max(res_data['quantileValues']), round(min(m["dataValues"]['probs']),1), round(max(m["dataValues"]['probs']),1)]) 
                     # ax[j].set(title=str(i) + ' Terms', ylabel='PDF', xlabel='Quantiles')
                     # ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF', xlabel='Quantiles')
-                    ax[j].set(title=str(i) + ' Terms', ylabel='PDF')
-                    ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF')
+            if len(terms_for_loop) == 2:
+                chart_title = " and ".join([str(x) for x in terms_for_loop if m['Validation']['valid'][x] == 'yes']) + ' Terms'
+                ax[0].set(title=chart_title, ylabel='PDF', xlabel='Quantiles')
+                ax[1].set(title=chart_title, ylabel='CDF', xlabel='Quantiles')
+            else:
+                ax[0].set(title=str(i) + ' Terms', ylabel='PDF')
+                ax[1].set(title=str(i) + ' Terms', ylabel='CDF')
+            if 'big plots' not in st.session_state['mfitted'][key][name]['plot']:
+                st.session_state['mfitted'][key][name]['plot']['big plot'] = plt
+                # return
                     # break
         # ax[0].legend()
         plt.tight_layout(rect=[0,0,0.75,1])
@@ -144,7 +162,7 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                        # ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='CDF', xlabel='Quantiles')fig, ax = plt.subplots(5, 3, figsize=(8, 3*3), sharex='col')
                        
         # i = 2
-    if not csv:  
+    if csv is False:  
         fig, ax = plt.subplots(5, 3, figsize=(8, 3*3), sharex='col')
         for i in range(2, 6 + 1):
             for j in range(0,3):
@@ -227,19 +245,31 @@ def preprocess_charts(x,
 	#Create metalog
 	# st.write(boundedness,
                        # bounds)
-	mfitted = metalog.fit(x, bounds = bounds, boundedness = boundedness, fit_method='OLS', term_limit = terms, probs=probs)
+	if 'mfitted' not in st.session_state:
+	  st.session_state['mfitted'] = {'csv':{},'quantile':{}}
+	if csv:
+	  key = 'csv'
+	else:
+	  key = 'quantile'
+	if 'mfitted' not in st.session_state['mfitted'][key]:
+	  mfitted = metalog.fit(x, bounds = bounds, boundedness = boundedness, fit_method='OLS', term_limit = terms, probs=probs)
+	  st.session_state['mfitted'][key]= {name:{'fit':mfitted,'plot':{'csv':None,'big plot':None}}}
+	  max_valid_term = mfitted['Validation'][mfitted['Validation']['valid'] == 'yes']['term'].max()
+    
     #Create graphs
-	st.write(mfitted.keys())
-	st.write(mfitted)
-	st.write(mfitted['M'])
-	st.write(mfitted["dataValues"])
-	st.write(mfitted['Validation'])
+	st.write(st.session_state['mfitted'][key][name]['fit'].keys())
+	st.write(type(st.session_state['mfitted'][key][name]['fit']))
+	st.write(st.session_state['mfitted'][key][name]['fit']['M'])
+	st.write(st.session_state['mfitted'][key][name]['fit']["dataValues"])
+	st.write(st.session_state['mfitted'][key][name]['fit']['Validation'])
     # big_plots = st.sidebar.checkbox("Big Graphs?")
+	max_valid_term = st.session_state['mfitted'][key][name]['fit']['Validation'][st.session_state['mfitted'][key][name]['fit']['Validation']['valid'] == 'yes']['term'].max()
 	if big_plots:
-	    term = graphs_container.slider(f"Select {name} Terms: ",2,terms,key=f"{name} term slider")
+	    term = graphs_container.slider(f"Select {name} Terms: ",2,max_valid_term,key=f"{name} term slider")
 	else:
 	    term = 16
-	plot(mfitted,big_plots,csv,term,name=name)
+	# plot(mfitted, True,csv=None,term=None,name=name)
+	plot(st.session_state['mfitted'][key][name]['fit'],big_plots,csv,term,name=name)
 
 def sent_to_pastebin(filename,file):
     payload = {"api_dev_key" : '7lc7IMiM_x5aMUFFudCiCo35t4o0Sxx6',
