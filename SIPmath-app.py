@@ -11,10 +11,10 @@ import matplotlib.pyplot as plt
 import warnings
 warnings.filterwarnings('ignore')
 
-PM_logo = Image.open('images\PM_logo.png')
-Metalog_Distribution = Image.open('images\Metalog Distribution.png')
-HDR_Generator = Image.open('images\HDR Generator.png')
-SIPmath_Standard = Image.open('images\SIPmath Standard.png')
+# PM_logo = Image.open('images\PM_logo.png')
+# Metalog_Distribution = Image.open('images\Metalog Distribution.png')
+# HDR_Generator = Image.open('images\HDR Generator.png')
+# SIPmath_Standard = Image.open('images\SIPmath Standard.png')
 # image = Image.open('PM_logo_transparent.png')
 st.set_page_config(page_title="SIPmath™ 3.0 Library Generator", page_icon=None, layout="wide", initial_sidebar_state="auto", menu_items=None)
 images_container = st.container()
