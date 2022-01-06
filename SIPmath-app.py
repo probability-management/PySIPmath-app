@@ -111,7 +111,8 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                         # return                        
                     break
         else:
-            terms_for_loop = [term, max_valid_term]
+            # terms_for_loop = [term, max_valid_term]
+            terms_for_loop = [term]
             # for i in range(2,term+1):
             for i in terms_for_loop :
                 if m['Validation']['valid'][i] == 'yes':
@@ -137,13 +138,25 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                     ax[j+1].axis([min(res_data['quantileValues']), max(res_data['quantileValues']), round(min(m["dataValues"]['probs']),1), round(max(m["dataValues"]['probs']),1)]) 
                     # ax[j].set(title=str(i) + ' Terms', ylabel='PDF', xlabel='Quantiles')
                     # ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF', xlabel='Quantiles')
-            if len(terms_for_loop) == 2:
-                chart_title = " and ".join([str(x) for x in terms_for_loop if m['Validation']['valid'][x] == 'yes']) + ' Terms'
-                ax[0].set(title=chart_title, ylabel='PDF', xlabel='Quantiles')
-                ax[1].set(title=chart_title, ylabel='CDF', xlabel='Quantiles')
-            else:
-                ax[0].set(title=str(i) + ' Terms', ylabel='PDF')
-                ax[1].set(title=str(i) + ' Terms', ylabel='CDF')
+                    if len(terms_for_loop) == 2:
+                        # chart_title = " and ".join([str(x) for x in terms_for_loop if m['Validation']['valid'][x] == 'yes']) + ' Terms'
+                        chart_title = f'{i} Terms'
+                        ax[0].set(title=chart_title, ylabel='PDF', xlabel='Quantiles')
+                        ax[1].set(title=chart_title, ylabel='CDF', xlabel='Quantiles')
+                    else:
+                        ax[0].set(title=str(i) + ' Terms', ylabel='PDF')
+                        ax[1].set(title=str(i) + ' Terms', ylabel='CDF')
+                else:
+                    ax[0].patch.set_facecolor('white')
+                    # ax[j].axes.xaxis.set_ticks([])     
+                    ax[0].axes.yaxis.set_ticks([])     
+                    ax[1].patch.set_facecolor('white')
+                    # ax[j + 1].axes.xaxis.set_ticks([])     
+                    ax[1].axes.yaxis.set_ticks([])     
+                    chart_title = f'{term} Terms'
+                    ax[0].set(title=chart_title, ylabel='PDF', xlabel='Quantiles')
+                    ax[1].set(title=chart_title, ylabel='CDF', xlabel='Quantiles')
+                    
             if 'big plots' not in st.session_state['mfitted'][key][name]['plot']:
                 st.session_state['mfitted'][key][name]['plot']['big plot'] = plt
                 # return
@@ -162,49 +175,51 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                        # ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='CDF', xlabel='Quantiles')fig, ax = plt.subplots(5, 3, figsize=(8, 3*3), sharex='col')
                        
         # i = 2
-    if csv is False:  
-        fig, ax = plt.subplots(5, 3, figsize=(8, 3*3), sharex='col')
-        for i in range(2, 6 + 1):
-            for j in range(0,3):
-                current_term = (2 + (i - 2)*3 + j) 
-                if results_len + 2 > current_term and m['Validation']['valid'][current_term] == 'yes':# Check to make sure it is valid before plotting.
-                    # Plotting PDF
-                    ax[i-2, j].plot(InitialResults[str(current_term) + ' Terms']['quantileValues'], InitialResults[str(current_term) + ' Terms']['pdfValues'],
-                          linewidth=2,c='darkblue')
+    # if csv is False:  
+    fig, ax = plt.subplots(3, 5, figsize=(10, 5), sharex='col')
+    for i in range(2, 4 + 1):
+        for j in range(0,5):
+            current_term = (2 + (i - 2)*5 + j) 
+            print(f"{current_term}")
+            if results_len + 2 > current_term and m['Validation']['valid'][current_term] == 'yes':# Check to make sure it is valid before plotting.
+                print(f"plotting {current_term}")
+                # Plotting PDF
+                ax[i-2, j].plot(InitialResults[str(current_term) + ' Terms']['quantileValues'], InitialResults[str(current_term) + ' Terms']['pdfValues'],
+                      linewidth=2,c='darkblue')
 
-                    # Plotting CDF
-                    # ax[i-2, j].plot(InitialResults[str(current_term) + ' Terms']['quantileValues'], InitialResults[str(current_term) + ' Terms']['cumValue'],
-                          # linewidth=2)
-                    # Plot data 
-                    # ax[i-2, j].scatter(m["dataValues"]['x'],m["dataValues"]['probs'],c='black',edgecolor='white')
-                else: #if not valid plot nothing
-                    #Plotting blank PDF chart
-                    # ax[i-2, 0].plot()
-                    # Plotting blank CDF chart
-                    ax[i-2, j].plot()
-                #Axes setup    
-                # if norm:
-                # ax[i-2, j].axis([min(res_data['quantileValues']), max(res_data['quantileValues']),
-                      # round(min(m["dataValues"]['probs']),1), round(max(m["dataValues"]['probs']),1)]) 
-                ax[i-2, j].patch.set_facecolor('white')
-                ax[i-2, j].axes.xaxis.set_ticks([])     
-                ax[i-2, j].axes.yaxis.set_ticks([])  
-                if current_term != 5*3:
-                    ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='PDF')
-                    # ax[i-2, j].patch.set()
-                else:
-                   ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='PDF', xlabel='Quantiles')
-                   
-                   # ax[i-2, j].patch.set(title=str(current_term) + ' Terms', ylabel='PDF', xlabel='Quantiles')
+                # Plotting CDF
+                # ax[i-2, j].plot(InitialResults[str(current_term) + ' Terms']['quantileValues'], InitialResults[str(current_term) + ' Terms']['cumValue'],
+                      # linewidth=2)
+                # Plot data 
+                # ax[i-2, j].scatter(m["dataValues"]['x'],m["dataValues"]['probs'],c='black',edgecolor='white')
+            else: #if not valid plot nothing
+                #Plotting blank PDF chart
+                # ax[i-2, 0].plot()
+                # Plotting blank CDF chart
+                ax[i-2, j].plot()
+            #Axes setup    
+            # if norm:
+            # ax[i-2, j].axis([min(res_data['quantileValues']), max(res_data['quantileValues']),
+                  # round(min(m["dataValues"]['probs']),1), round(max(m["dataValues"]['probs']),1)]) 
+            ax[i-2, j].patch.set_facecolor('white')
+            ax[i-2, j].axes.xaxis.set_ticks([])     
+            ax[i-2, j].axes.yaxis.set_ticks([])  
+            if current_term < 11:
+                ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='PDF')
+                # ax[i-2, j].patch.set()
+            else:
+               ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='PDF', xlabel='Quantiles')
+               
+               # ax[i-2, j].patch.set(title=str(current_term) + ' Terms', ylabel='PDF', xlabel='Quantiles')
+                  
                       
-                          
-                # if current_term != 5*3:
-                    # ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='CDF')
-                # else:
-                   # ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='CDF', xlabel='Quantiles')
-                      
-        plt.tight_layout()
-        graphs_container.pyplot(plt)
+            # if current_term != 5*3:
+                # ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='CDF')
+            # else:
+               # ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='CDF', xlabel='Quantiles')
+                  
+    plt.tight_layout()
+    graphs_container.pyplot(plt)
     # return plt
 
 def convert_to_JSON(input_df,
@@ -257,11 +272,11 @@ def preprocess_charts(x,
 	  max_valid_term = mfitted['Validation'][mfitted['Validation']['valid'] == 'yes']['term'].max()
     
     #Create graphs
-	st.write(st.session_state['mfitted'][key][name]['fit'].keys())
-	st.write(type(st.session_state['mfitted'][key][name]['fit']))
-	st.write(st.session_state['mfitted'][key][name]['fit']['M'])
-	st.write(st.session_state['mfitted'][key][name]['fit']["dataValues"])
-	st.write(st.session_state['mfitted'][key][name]['fit']['Validation'])
+	# st.write(st.session_state['mfitted'][key][name]['fit'].keys())
+	# st.write(type(st.session_state['mfitted'][key][name]['fit']))
+	# st.write(st.session_state['mfitted'][key][name]['fit']['M'])
+	# st.write(st.session_state['mfitted'][key][name]['fit']["dataValues"])
+	# st.write(st.session_state['mfitted'][key][name]['fit']['Validation'])
     # big_plots = st.sidebar.checkbox("Big Graphs?")
 	max_valid_term = st.session_state['mfitted'][key][name]['fit']['Validation'][st.session_state['mfitted'][key][name]['fit']['Validation']['valid'] == 'yes']['term'].max()
 	if big_plots:
