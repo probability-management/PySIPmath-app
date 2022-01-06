@@ -278,11 +278,12 @@ def preprocess_charts(x,
 	# st.write(st.session_state['mfitted'][key][name]['fit']["dataValues"])
 	# st.write(st.session_state['mfitted'][key][name]['fit']['Validation'])
     # big_plots = st.sidebar.checkbox("Big Graphs?")
-	max_valid_term = st.session_state['mfitted'][key][name]['fit']['Validation'][st.session_state['mfitted'][key][name]['fit']['Validation']['valid'] == 'yes']['term'].max()
+	max_valid_term = int(st.session_state['mfitted'][key][name]['fit']['Validation'][st.session_state['mfitted'][key][name]['fit']['Validation']['valid'] == 'yes']['term'].max())
+	# print(type(max_valid_term))
 	if big_plots:
-	    term = graphs_container.slider(f"Select {name} Terms: ",2,max_valid_term,key=f"{name} term slider")
+	    term = graphs_container.slider(f"Select {name} Terms: ",int(2),max_valid_term,key=f"{name} term slider")
 	else:
-	    term = 16
+	    term = int(16)
 	# plot(mfitted, True,csv=None,term=None,name=name)
 	plot(st.session_state['mfitted'][key][name]['fit'],big_plots,csv,term,name=name)
 
