@@ -562,7 +562,7 @@ if data_type == 'CSV File':
             name = file.name.replace(".csv","")
             # with main_contanier.contanier():
             table_container.subheader(f"Preview for {name}")
-            # table_container.write(input_df[:10].to_html(index=False), unsafe_allow_html=True)
+            table_container.write(input_df[:10].to_html(index=False), unsafe_allow_html=True)
         if isinstance(input_df, pd.DataFrame):
             quanile_container = st.sidebar.container()
             # quanile_container.subheader("Please Enter Values Below:")
