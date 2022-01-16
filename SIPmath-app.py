@@ -9,6 +9,9 @@ import numpy as np
 from metalog import metalog
 import matplotlib.pyplot as plt
 import warnings
+import plotly.express as px
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
 warnings.filterwarnings('ignore')
 
 # PM_logo = Image.open('images\PM_logo.png')
@@ -34,27 +37,192 @@ graphs_container = st.empty().container()
 #Taken from the metalog
 # @st.cache(suppress_st_warning=True)
 def plot(m, big_plots=None,csv=None,term=None,name=None):
-    
+    # st.write(m)
     if csv:
       key = 'csv'
-    else:
+    else: 
       key = 'quantile'
+    # if res_data
     # Collecting data to set limits of axes
-    res_data = pd.DataFrame({'term': np.repeat(str(m['params']['term_lower_bound']) \
-                                                     + ' Terms', len(m['M'].iloc[:, 0])),
-                                   'pdfValues': m['M'].iloc[:, 0],
-                                   'quantileValues': m['M'].iloc[:, 1],
-                                   'cumValue': m['M']['y']
-                                   })
-    if m['M'].shape[-1] > 3:
-        for i in range(2, len(m['M'].iloc[0, ] - 1) // 2 + 1):
-            if m['Validation']['valid'][i] == 'yes':
-                temp_data = pd.DataFrame({'term': np.repeat(str(m['params']['term_lower_bound'] + i - 1) \
-                                                              + ' Terms', len(m['M'].iloc[:, 0])),
-                                            'pdfValues': m['M'].iloc[:, i * 2 - 2],
-                                            'quantileValues': m['M'].iloc[:, i * 2 - 1],
-                                            'cumValue': m['M']['y']})
-                res_data = pd.concat([res_data, temp_data], ignore_index=True)
+    if 'res_data' not in st.session_state['mfitted'][key][name]:
+        # st.write("notthere")
+        res_data = pd.DataFrame({'term': np.repeat(str(m['params']['term_lower_bound']) \
+                                                         + ' Terms', len(m['M'].iloc[:, 0])),
+                                       'pdfValues': m['M'].iloc[:, 0],
+                                       'quantileValues': m['M'].iloc[:, 1],
+                                       'cumValue': m['M']['y']
+                                       })
+        if m['M'].shape[-1] > 3:
+            for i in range(2, len(m['M'].iloc[0, ] - 1) // 2 + 1):
+                if m['Validation']['valid'][i] == 'yes':
+                    # st.write(i)
+                    temp_data = pd.DataFrame({'term': np.repeat(str(m['params']['term_lower_bound'] + i - 1) \
+                                                                  + ' Terms', len(m['M'].iloc[:, 0])),
+                                                'pdfValues': m['M'].iloc[:, i * 2 - 2],
+                                                'quantileValues': m['M'].iloc[:, i * 2 - 1],
+                                                'cumValue': m['M']['y']})
+                    res_data = pd.concat([res_data, temp_data], ignore_index=True)
+        res_data['frames'] =  res_data['term']
+        res_data['groups'] = res_data['term']
+    else:
+        res_data = st.session_state['mfitted'][key][name]['res_data']
+    # st.write(res_data)
+    # st.write(m['Validation']['valid'])
+    if (res_data['term'] != f"{term} Terms").all():
+      for new in range(int(term),1,-1):
+        # st.write(new)
+        if (res_data['term'] == f"{new} Terms").any():
+          term = new
+          # st.write(new)
+          break
+    highest_term = f"{term} Terms"
+    # print(term)
+    # st.write(highest_term)
+    highest_term_df = res_data[res_data['term'] == highest_term]
+    # st.write(highest_term_df)
+    highest_term_index = highest_term_df.index[-1] + 1
+    # highest_term_df['frames']
+    fig = px.line(res_data[:highest_term_index], y="pdfValues", x="quantileValues", color = "term",
+              animation_group='groups',
+              animation_frame = 'frames',
+              range_x=[min(res_data[:highest_term_index]['quantileValues']), max(res_data[:highest_term_index]['quantileValues'])],
+              range_y =[0, max(res_data[:highest_term_index]["pdfValues"])])
+    fig1 = px.line(res_data[:highest_term_index], y="cumValue", x="quantileValues", color = "term",
+              animation_group='term',
+              animation_frame = 'term')
+    # st.write(res_data)# hide and lock down axes
+    # fig.update_xaxes(visible=False, fixedrange=True)
+    # fig.update_yaxes(visible=False, fixedrange=True)
+    # fig.for_each_trace(
+                                # lambda trace: trace.update(visible = "legendonly") if trace.name != highest_term  else (),
+        # )
+    # fig1.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 750
+    fig.update_layout(
+                   showlegend=False,
+                   yaxis_title='PDF',
+                   xaxis_title='Quantile',
+                   paper_bgcolor='rgba(0,0,0,0)',
+                   plot_bgcolor='rgba(0,0,0,0)',
+                   xaxis=dict(
+                      showline=True,
+                      showgrid=False,
+                      showticklabels=True,
+                      linecolor='rgb(204, 204, 204)',
+                      linewidth=2,
+                      ticks='outside',
+                      tickfont=dict(
+                          family='Arial',
+                          size=12,
+                          color='rgb(82, 82, 82)',
+                      ),
+                  ),
+                   yaxis=dict(
+                      showgrid=False,
+                      zeroline=False,
+                      showline=False,
+                      showticklabels=False,
+                  ))
+    fig.add_trace(go.Scatter(y=highest_term_df.pdfValues, x=highest_term_df.quantileValues,name=highest_term))
+    fig1.add_trace(go.Scatter(mode='markers', y=m["dataValues"]['probs'], x=m["dataValues"]['x'],
+        marker=dict(
+            color='rgba(0,0,0,0)',
+            size=15,
+            line=dict(
+            color='DarkRed',
+                width=1
+            )),name=name))
+    fig1.add_trace(go.Scatter(y=highest_term_df.cumValue, x=highest_term_df.quantileValues,name=highest_term))
+    total_graph = make_subplots(rows=1, cols=2, subplot_titles = ('PDF', 'CDF'))
+    _ = [total_graph.append_trace(trace, row=1, col=1) for trace in fig['data']]
+    _ = [total_graph.append_trace(trace, row=1, col=2) for trace in fig1['data']]
+    total_graph.update_layout(
+                   showlegend=False,
+                   paper_bgcolor='rgba(0,0,0,0)',
+                   plot_bgcolor='rgba(0,0,0,0)',
+                   xaxis=dict(
+                      range=[min(res_data[:highest_term_index]['quantileValues']), max(res_data[:highest_term_index]['quantileValues'])],
+                      showline=True,
+                      showgrid=False,
+                      showticklabels=True,
+                      linecolor='rgb(204, 204, 204)',
+                      linewidth=2,
+                      ticks='outside',
+                      tickfont=dict(
+                          family='Arial',
+                          size=12,
+                          color='rgb(82, 82, 82)',
+                      ),
+                  ),
+                   xaxis2=dict(
+                      range=[min(res_data[:highest_term_index]['quantileValues']), max(res_data[:highest_term_index]['quantileValues'])],
+                      showline=True,
+                      showgrid=False,
+                      showticklabels=True,
+                      linecolor='rgb(204, 204, 204)',
+                      linewidth=2,
+                      ticks='outside',
+                      tickfont=dict(
+                          family='Arial',
+                          size=12,
+                          color='rgb(82, 82, 82)',
+                      ),
+                  ),
+                   yaxis=dict(
+                      showgrid=False,
+                      zeroline=False,
+                      showline=False,
+                      showticklabels=False,
+                      range = [0, max(res_data[:highest_term_index]["pdfValues"])]
+                  ),
+                   yaxis2=dict(
+                      showgrid=False,
+                      zeroline=False,
+                      showline=False,
+                      showticklabels=False,
+                      range = [0, max(res_data[:highest_term_index]["cumValue"])]
+                  ))
+    # total_graph.update_yaxes(range=[0,1])
+    frames = [dict(
+                   name = k,
+                   data = [go.Scatter(y= res_data.loc[res_data['term'] == f"{k} Terms",'pdfValues'], x=res_data.loc[res_data['term'] == f"{k} Terms",'quantileValues']),#update the trace 1 in (1,1)
+                               # go.Scatter(y=highest_term_df.pdfValues),#update the trace 1 in (1,1)
+                               go.Scatter(y = res_data.loc[res_data['term'] == f"{k} Terms",'cumValue'], x=res_data.loc[res_data['term'] == f"{k} Terms",'quantileValues']),
+                               # go.Scatter(y=m["dataValues"]['probs']),
+                               # go.Scatter(y=highest_term_df.cumValue)
+                           ],
+                   traces=[0,2]# the elements of the list [0,1,2] give info on the traces in fig.data
+                                          # that are updated by the above three go.Scatter instances
+                  ) for k in range(term+1) if (res_data['term'] == f"{k} Terms").any()]
+    # st.write(total_graph.layout)
+    updatemenus = [dict(type='buttons',
+                                  buttons=[dict(label='Play',
+                                  method='animate',
+                                  args=[[f'{k}' for k in range(term+1) if (res_data['term'] == f"{k} Terms").any()], 
+                                         dict(frame=dict(duration=750, redraw=True), 
+                                              transition=dict(duration=250),
+                                              easing='linear',
+                                              fromcurrent=True,
+                                              mode='immediate'
+                                                                 )])],
+                    direction= 'left', 
+                    pad=dict(r= 10, t=85), 
+                    showactive =True, x= 0.1, y= 0, xanchor= 'right', yanchor= 'top')
+            ]
+
+    sliders = [{'yanchor': 'top',
+                'xanchor': 'left', 
+                'currentvalue': {'font': {'size': 16}, 'prefix': 'Term: ', 'visible': True, 'xanchor': 'right'},
+                'transition': {'duration': 500.0, 'easing': 'linear'},
+                'pad': {'b': 10, 't': 50}, 
+                'len': 0.9, 'x': 0.1, 'y': 0, 
+                'steps': [{'args': [[k], {'frame': {'duration': 500.0, 'easing': 'linear', 'redraw': False},
+                                          'transition': {'duration': 100, 'easing': 'linear'}}], 
+                           'label': k, 'method': 'animate'} for k in range(term+1)  if (res_data['term'] == f"{k} Terms").any()     
+                        ]}]                       
+    total_graph.update(frames=frames)
+    total_graph.update_layout(updatemenus=updatemenus,
+                  sliders=sliders)
+    graphs_container.plotly_chart(total_graph, use_container_width=True)
     
     # Collecting data into dictionary
     InitialResults = {}
@@ -74,6 +242,9 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
     # ggplot style
     plt.style.use('ggplot')
     max_valid_term = m['Validation'][m['Validation']['valid'] == 'yes']['term'].max()
+    
+    # st.write(m['M'])
+    # st.write(InitialResults)
     
     results_len = len(InitialResults)
     # fig, ax = plt.subplots(results_len, 2, figsize=(8, 3*results_len), sharex='col')
@@ -163,7 +334,7 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                     # break
         # ax[0].legend()
         plt.tight_layout(rect=[0,0,0.75,1])
-        graphs_container.pyplot(plt)
+        # graphs_container.pyplot(plt)
         
         # plt.clf()
                        # ax[i-2, j].patch.set(title=str(current_term) + ' Terms', ylabel='PDF', xlabel='Quantiles')
@@ -219,7 +390,7 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                # ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='CDF', xlabel='Quantiles')
                   
     plt.tight_layout()
-    graphs_container.pyplot(plt)
+    # graphs_container.pyplot(plt)
     # return plt
 
 def convert_to_JSON(input_df,
@@ -281,7 +452,7 @@ def preprocess_charts(x,
 	max_valid_term = int(st.session_state['mfitted'][key][name]['fit']['Validation'][st.session_state['mfitted'][key][name]['fit']['Validation']['valid'] == 'yes']['term'].max())
 	# print(type(max_valid_term))
 	if big_plots:
-	    term = graphs_container.slider(f"Select {name} Terms: ",int(2),max_valid_term,key=f"{name} term slider")
+	    term = graphs_container.slider(f"Select {name} Terms: ",int(3),max_valid_term,key=f"{name} term slider")
 	else:
 	    term = int(16)
 	# plot(mfitted, True,csv=None,term=None,name=name)
@@ -316,7 +487,7 @@ def make_csv_graph(series,
                                     series.name)
                                     
     return None
-
+# @st.cache
 def input_data(name,i,df,probs=None):
     if probs is None:
         probs = np.nan
