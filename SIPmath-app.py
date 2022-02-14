@@ -658,7 +658,7 @@ def input_data(name,i,df,probs=None):
              # term_saved = 3
              
          # ###### I need to fix the problem by adjusting csv to variable then select it based on if probs is None or not.
-        if 'mfitted' in st.session_state and all([st.session_state['mfitted'][input_data_type][x]['fit'] for x in data_columns]):
+        if 'mfitted' in st.session_state and all([st.session_state['mfitted'][input_data_type][x]['fit'] for x in data_columns if x in st.session_state['mfitted'][input_data_type]]):
             term_saved = [st.session_state['mfitted'][input_data_type][x]['options']['terms'] if x in st.session_state['mfitted'][input_data_type] else None for x in data_columns]
             print(term_saved)
             if all(term_saved) and "-" not in term_saved:
