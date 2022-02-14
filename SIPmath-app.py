@@ -322,7 +322,7 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                     # ax[j].legend(loc='upper center',ncol=2)
                     # ax[j + 1].legend([str(i) + ' Terms'])
                     # ax[j].axis([min(res_data['quantileValues']), max(res_data['quantileValues']), 0, max(res_data["pdfValues"])]) 
-                    ax[j+1].axis([min(res_data['quantileValues']), max(res_data['quantileValues']), round(min(m["dataValues"]['probs']),1), round(max(m["dataValues"]['probs']),1)]) 
+                    ax[j+1].axis([min(res_data['quantileValues']), max(res_data['quantileValues']), 0, 1]) 
                     # ax[j].set(title=str(i) + ' Terms', ylabel='PDF', xlabel='Quantiles')
                     # ax[j + 1].set(title=str(i) + ' Terms', ylabel='CDF', xlabel='Quantiles')
                     if len(terms_for_loop) == 2:
@@ -477,7 +477,7 @@ def preprocess_charts(x,
 	else:
 	  key = 'quantile'
 	# update_boundedness(False)
-	if name not in st.session_state['mfitted'][key] or st.session_state['mfitted'][key][name]['fit'] is None:
+	if (name not in st.session_state['mfitted'][key] or st.session_state['mfitted'][key][name]['fit'] is None) :
 	  mfitted = metalog.fit(x, bounds = bounds, boundedness = boundedness, fit_method='OLS', term_limit = terms, probs=probs)
 	  # max_valid_term = int(mfitted['Validation'][(mfitted['Validation']['valid'] == 'yes') & (mfitted['Validation']['term'] <= user_term)]['term'].max())
 	  st.session_state['mfitted'][key][name] = {'fit':mfitted,'plot':{'csv':None,'big plot':None},'options':{'boundedness':boundedness, 'terms':user_term, 'bounds': bounds}}
@@ -511,55 +511,76 @@ def sent_to_pastebin(filename,file):
     r = requests.post(url,data=payload)
     return r
  
- 
-def update_terms(selected_column):
+def convert_to_number(value):
+    if isinstance(value,dict):
+        for k,v in value.items():
+            value[k] = float(v) if isinstance(v,str) and v.isnumeric() else v
+    return value
+
+def update_max_term():
+    st.session_state["Column_Terms"] = st.session_state["Quantile"]
+def update_terms(selected_column, data_type='csv'):
     value = st.session_state["Column_Terms"]
     if 'mfitted' in st.session_state:
-        if selected_column not in st.session_state['mfitted']['csv']:
+        if selected_column not in st.session_state['mfitted'][data_type]:
             print("selected_column",selected_column)
-            st.session_state['mfitted']['csv'][selected_column]['options']['terms'] = value
-        elif st.session_state['mfitted']['csv'][selected_column]['options']['terms'] != value:
-            st.session_state['mfitted']['csv'][selected_column]['options']['terms'] = value
+            # st.session_state['mfitted'][data_type][selected_column]['options']['terms'] = value
+        elif st.session_state['mfitted'][data_type][selected_column]['options']['terms'] != value:
+            st.session_state['mfitted'][data_type][selected_column]['options']['terms'] = value
             
-def update_boundedness(refresh=True):
+def update_boundedness(refresh=True, data_type='csv',max=1,min=0):
     boundedness = st.session_state["Column_boundedness"]
     selected_column = st.session_state["Big Graph Column"]
+    if "Column_upper" not in st.session_state:
+        upper = max
+    else:
+        upper = float(st.session_state["Column_upper"]) if st.session_state["Column_upper"].isnumeric() else max
+    if "Column_lower" not in st.session_state:
+        lower = min
+    else:
+        lower = float(st.session_state["Column_lower"])  if st.session_state["Column_lower"].isnumeric() else min
+       
     if boundedness == "'b' - bounded on both sides":
         #convert to float and list
-        bounds = [float(st.session_state["Column_lower"]),float(st.session_state["Column_upper"])]
+        bounds = [lower, upper]
     elif boundedness.find("lower") != -1:
-        bounds = [float(st.session_state["Column_lower"])]
+        bounds = [lower]
     elif boundedness.find("upper") != -1:
-        bounds = [float(st.session_state["Column_upper"])]
+        bounds = [upper]
     else:
         bounds = [0,1] 
     boundedness = boundedness.strip().split(" - ")[0].replace("'","")
     if 'mfitted' in st.session_state:
-        if selected_column not in st.session_state['mfitted']['csv']:
+        if selected_column not in st.session_state['mfitted'][data_type]:
             # print("selected_column",selected_column)
-            st.session_state['mfitted']['csv'][selected_column]['options']['boundedness'] = boundedness
-            st.session_state['mfitted']['csv'][selected_column]['options']['bounds'] = bounds
-        elif st.session_state['mfitted']['csv'][selected_column]['options']['boundedness'] != boundedness or st.session_state['mfitted']['csv'][selected_column]['options']['bounds'] != bounds:
-            st.session_state['mfitted']['csv'][selected_column]['options']['boundedness'] = boundedness
-            st.session_state['mfitted']['csv'][selected_column]['options']['bounds'] = bounds
+            st.session_state['mfitted'][data_type][selected_column]['options']['boundedness'] = boundedness
+            st.session_state['mfitted'][data_type][selected_column]['options']['bounds'] = bounds
+        elif st.session_state['mfitted'][data_type][selected_column]['options']['boundedness'] != boundedness or st.session_state['mfitted'][data_type][selected_column]['options']['bounds'] != bounds:
+            st.session_state['mfitted'][data_type][selected_column]['options']['boundedness'] = boundedness
+            st.session_state['mfitted'][data_type][selected_column]['options']['bounds'] = bounds
             #TODO: recalculate when bounds change
     if refresh:
-        st.session_state['mfitted']['csv'][selected_column]['fit'] = None
+        st.session_state['mfitted'][data_type][selected_column]['fit'] = None
         # st.session_state['mfitted']['quantile'][selected_column]['fit'] = None
-        st.session_state['mfitted']['csv'][selected_column]['plot'] = {'csv':None,'big plot':None}
-        # st.session_state['mfitted']['quantile'][selected_column]['plot'] = {'csv':None,'big plot':None}
-def update_seeds():               
-        
+        st.session_state['mfitted'][data_type][selected_column]['plot'] = {data_type:None,'big plot':None}
+        # st.session_state['mfitted']['quantile'][selected_column]['plot'] = {data_type:None,'big plot':None}
+def update_seeds(data_type='csv',  entity = None,  varId = None,  seed3 = None,  seed4 = None):                 
     selected_column = st.session_state["Big Graph Column"]
     if 'mfitted' in st.session_state:
-        if selected_column in st.session_state['mfitted']['csv']:
-            st.session_state['mfitted']['csv'][selected_column]['options']['seeds']['arguments'] = {'counter':'PM_Index',
+        if not entity is None:
+            st.session_state['mfitted'][data_type][selected_column]['options']['seeds']['arguments']['entity'] = entity   
+        elif not varId is None:
+            st.session_state['mfitted'][data_type][selected_column]['options']['seeds']['arguments']['varId'] = varId   
+        elif not seed3 is None:
+            st.session_state['mfitted'][data_type][selected_column]['options']['seeds']['arguments']['seed3'] = seed3   
+        elif not seed4 is None:
+            st.session_state['mfitted'][data_type][selected_column]['options']['seeds']['arguments']['seed4'] = seed4   
+        elif selected_column in st.session_state['mfitted'][data_type]:
+            st.session_state['mfitted'][data_type][selected_column]['options']['seeds']['arguments'] = {'counter':'PM_Index',
                                                                                     'entity' : st.session_state[f"entity {selected_column}"] ,
                                                                                     'varId' : st.session_state[f"varId {selected_column}"] ,
                                                                                     'seed3' : st.session_state[f"seed3 {selected_column}"],
-                                                                                    'seed4' : st.session_state[f"seed4 {selected_column}"] }
-
-    
+                                                                                    'seed4' : st.session_state[f"seed4 {selected_column}"] }    
 def make_csv_graph(series,
                                        probs,
                                        boundedness,
@@ -569,15 +590,27 @@ def make_csv_graph(series,
     if big_plots:
         graphs_container.markdown(f"<div id='linkto_head'></div>", unsafe_allow_html=True)
         graphs_container.header(series.name)
-    preprocess_charts(series.to_list(),
-                                    probs,
-                                    boundedness,
-                                    bounds,
-                                    big_plots,
-                                    16,
-                                    True,
-                                    series.name,
-									user_terms)
+        print(probs)
+    if probs is np.nan:
+        preprocess_charts(series.to_list(),
+                                        probs,
+                                        boundedness,
+                                        bounds,
+                                        big_plots,
+                                        16,
+                                        True,
+                                        series.name,
+                                        user_terms)
+    else:
+        preprocess_charts(series.to_list(),
+                                        probs,
+                                        boundedness,
+                                        bounds,
+                                        big_plots,
+                                        user_terms,
+                                        False,
+                                        series.name,
+                                        user_terms)
                                     
     return None
 # @st.cache
@@ -586,15 +619,21 @@ def input_data(name,i,df,probs=None):
         probs = np.nan
         max_val = 16
         default_val = 5
+        input_data_type = 'csv'
+        data_columns = df.columns
     else:
         max_val = df.shape[0]
         default_val = max_val
+        input_data_type = 'quantile'
+        data_columns = ['x']
     table_container.write("If the data above appears correct, please enter your parameters in the sidebar for this file.")
     
     with st.sidebar.expander("Output Options"):
         filename = st.text_input(f'Filename {i+1}', name+'.SIPmath',key=f"{name}_{i}_filename")
         author = st.text_input(f'Author for {filename}', 'Unknown',key=f"{name}_author")
-        dependence = st.selectbox('Dependence', ('independent','dependent'),key=f"{name}_{i}_dependence")
+        dependence = st.selectbox('Dependence', ('independent','Guassian Copula'),key=f"{name}_{i}_dependence")
+        if dependence != 'independent':
+            dependence = 'dependent'
         # boundedness = st.selectbox('Boundedness', ("'u' - unbounded", 
                                                            # "'sl' - semi-bounded lower", 
                                                            # "'su' - semi-bounded upper",
@@ -617,37 +656,38 @@ def input_data(name,i,df,probs=None):
             # term_saved = st.slider('Term Saved',3,max_val,default_val,key=f"{name}_term_saved")
         # else:
              # term_saved = 3
-        term_saved = [st.session_state['mfitted']['csv'][x]['options']['terms'] if x in st.session_state['mfitted']['csv'] else None for x in df.columns]
-        print(term_saved)
-        if None not in term_saved:
-            boundedness = [st.session_state['mfitted']['csv'][x]['options']['boundedness'] if x in st.session_state['mfitted']['csv'] else None for x in df.columns]
-            bounds = [[y for y in st.session_state['mfitted']['csv'][x]['options']['bounds']] if x in st.session_state['mfitted']['csv'] else None for x in df.columns]
-            print(bounds)
-            preview_options = pd.DataFrame(term_saved, index = df.columns, columns = ['Term'])
-            preview_options['Boundedness'] = boundedness
-            preview_options['Lower Bounds'] = [float(x[0]) if y == 'b'  or y == 'sl' else np.nan for x,y in zip(bounds,boundedness) ]
-            preview_options['Upper Bounds'] = [float(x[-1]) if y == 'b'  or y == 'su' else np.nan for x,y in zip(bounds,boundedness) ]
-            for coeff_num in range(preview_options['Term'].max()):
-                preview_options[f'A {coeff_num + 1}'] = [st.session_state['mfitted']['csv'][x]['fit']['A'].iloc[coeff_num,st.session_state['mfitted']['csv'][x]['options']['terms'] - 1] for x in df.columns]
-            # preview_options = preview_options.T
-            table_container.write(preview_options)
+             
+         # ###### I need to fix the problem by adjusting csv to variable then select it based on if probs is None or not.
+        if 'mfitted' in st.session_state and all([st.session_state['mfitted'][input_data_type][x]['fit'] for x in data_columns]):
+            term_saved = [st.session_state['mfitted'][input_data_type][x]['options']['terms'] if x in st.session_state['mfitted'][input_data_type] else None for x in data_columns]
+            print(term_saved)
+            if all(term_saved) and "-" not in term_saved:
+                boundedness = [st.session_state['mfitted'][input_data_type][x]['options']['boundedness'] if x in st.session_state['mfitted'][input_data_type] else None for x in data_columns]
+                bounds = [[y for y in st.session_state['mfitted'][input_data_type][x]['options']['bounds']] if x in st.session_state['mfitted'][input_data_type] else None for x in data_columns]
+                print(bounds)
+                preview_options = pd.DataFrame(term_saved, index = data_columns, columns = ['Term'])
+                preview_options['Boundedness'] = boundedness
+                preview_options['Lower Bounds'] = [float(x[0]) if y == 'b'  or y == 'sl' else np.nan for x,y in zip(bounds,boundedness) ]
+                preview_options['Upper Bounds'] = [float(x[-1]) if y == 'b'  or y == 'su' else np.nan for x,y in zip(bounds,boundedness) ]
+                print(preview_options['Term'])
+                for coeff_num in range(int(preview_options['Term'].max())):
+                    preview_options[f'A {coeff_num + 1}'] = [st.session_state['mfitted'][input_data_type][x]['fit']['A'].iloc[coeff_num,st.session_state['mfitted'][input_data_type][x]['options']['terms'] - 1] for x in data_columns]
+                # preview_options = preview_options.T
+                table_container.write(preview_options)
+                converted_seeds = [{k:convert_to_number(v) for k,v in st.session_state['mfitted'][input_data_type][x]['options']['seeds'].items()} for x in data_columns]
+                print(converted_seeds)
 
         if st.button(f'Convert to {name} SIPmath Json?',key=f"{name}_term_saved"):
-            graphs_container.empty()
-            table_container.empty()
-            slider_container.empty()
-            graphs_container.empty()
             table_container.subheader("Preview and Download the JSON file below.")
             data_dict_for_JSON = dict(boundedness=boundedness,
                            bounds=bounds,
                            term_saved=term_saved)
-    
             PySIP.Json(SIPdata=df,
                            file_name=filename,
                            author=author,
                            dependence=dependence,
                            setupInputs=data_dict_for_JSON,
-                           seeds = [st.session_state['mfitted']['csv'][x]['options']['seeds'] for x in df.columns],
+                           seeds = converted_seeds,
                            probs=probs)
                            
             with open(filename) as f:
@@ -668,11 +708,12 @@ st.sidebar.header('User Input Parameters')
 
 # Collects user input features into dataframe
 data_type = st.sidebar.radio('Input Data Type', ('CSV File','Quantile'), index=0)
-
+data_type_str = data_type.split()[0].lower()
 if data_type == 'CSV File':
-    uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type=["csv"],accept_multiple_files=True)
+    uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type=["csv"],accept_multiple_files=False)
     if uploaded_file != None:
         input_df = None
+        uploaded_file = uploaded_file if isinstance(uploaded_file, list) else [uploaded_file]
         for i,file in enumerate(uploaded_file):
             try:
                 input_df = pd.read_csv(file)
@@ -684,15 +725,13 @@ if data_type == 'CSV File':
             table_container.subheader(f"Preview for {name}")
             table_container.write(input_df[:10].to_html(index=False), unsafe_allow_html=True)
         if isinstance(input_df, pd.DataFrame):
-            if "column_index" not in st.session_state:
-                st.session_state["column_index"] = {k:v for v,k in enumerate(input_df.columns.to_list())}
-            quanile_container = st.sidebar.container()
-            # quanile_container.subheader("Please Enter Values Below:")
-            y_values, x_values = quanile_container.columns(2)
+            # if "column_index" not in st.session_state:
+            st.session_state["column_index"] = {k:v for v,k in enumerate(input_df.columns)}
+            print("column_index = ",st.session_state["column_index"])
             # if "selected_column" in locals():
                 # print('selected column is here!')
                 # print("selected_column",selected_column)
-                # if 'mfitted' in st.session_state  and selected_column in st.session_state['mfitted']['csv']:
+                # if 'mfitted' in st.session_state  and selected_column in st.session_state['mfitted'][data_type_str]:
                     # print("selected_column",selected_column)
                     # st.session_state["Column_Terms"] = "-"
                 
@@ -706,51 +745,70 @@ if data_type == 'CSV File':
             big_plots, make_graphs_checkbox = True, True
             if make_graphs_checkbox or all(input_df.any()):
                 if big_plots:
+                    seed_container = st.sidebar.container()
                     # if not "selected_column" in locals():
                         # empty_table.empty()
-                    selected_column = graphs_container.selectbox("Select Current Variable:",  input_df.columns, key="Big Graph Column")     
-                    boundedness = quanile_container.selectbox(f'Current Variable: Boundedness', ("'u' - unbounded", 
+                    selected_column = graphs_container.selectbox("Select Current Variable:",  input_df.columns,key="Big Graph Column")     
+                    #on change pass the max, min value for the column
+                    boundedness = seed_container.selectbox(f'Current Variable: Boundedness', ("'u' - unbounded", 
                                                                "'sl' - semi-bounded lower", 
                                                                "'su' - semi-bounded upper",
                                                                "'b' - bounded on both sides"),
+                                                               # on_change = update_boundedness,
                                                                key=f"Column_boundedness")
+                    # update_boundedness()
+                    upper_bound, lower_bound = seed_container.columns(2)
                     #TODO: error handling for value too small for upper bounds or letter                                             
                     if boundedness == "'b' - bounded on both sides":
                         #convert to float and list
-                        boundsl = y_values.number_input('Lower Bound', 0,on_change=update_boundedness,key=f"Column_lower") 
+                        boundsl = lower_bound.text_input('Lower Bound', input_df[selected_column].min(),key=f"Column_lower") 
+                        if not boundsl.isnumeric() or (boundsl.isnumeric() and float(boundsl) > float(input_df[selected_column].min())):
+                            # lower_bound.error(f"The number needs to be equal to or less than the minimum value ({input_df[selected_column].min()}) of {selected_column}")
+                            boundsl = input_df[selected_column].min()
                         # if 
-                        # y_values.text_input('Lower Bound')
-                        boundsu = x_values.number_input('Upper Bound', 1,on_change=update_boundedness,key=f"Column_upper")
-                        # x_values.text_input('Upper Bound')
-                        bounds = [boundsl,boundsu]
+                        # lower_bound.text_input('Lower Bound')
+                        boundsu = upper_bound.text_input('Upper Bound', input_df[selected_column].max(),key=f"Column_upper")
+                        if not boundsu.isnumeric() or (boundsu.isnumeric() and float(boundsu) < float(input_df[selected_column].max())):
+                            # upper_bound.error(f"The number needs to be equal to or greater than the maximum value ({input_df[selected_column].max()})  of {selected_column}")
+                            boundsu = input_df[selected_column].max()
+                        # upper_bound.text_input('Upper Bound')
+                        bounds = [float(boundsl),float(boundsu)]
+                        update_boundedness()
                     elif boundedness.find("lower") != -1:
-                        bounds = [y_values.number_input('Lower Bound', 0,on_change=update_boundedness,key=f"Column_lower")]
+                        boundsl = lower_bound.text_input('Lower Bound', input_df[selected_column].min(),key=f"Column_lower") 
+                        if not boundsl.isnumeric() or (boundsl.isnumeric() and float(boundsl) > float(input_df[selected_column].min())):
+                            # lower_bound.error(f"The number needs to be equal to or less than the minimum value ({input_df[selected_column].min()}) of {selected_column}")
+                            boundsl = input_df[selected_column].min()
+                        bounds = [float(boundsl)]
+                        update_boundedness()
                     elif boundedness.find("upper") != -1:
-                        bounds = [x_values.number_input('Upper Bound', 1,on_change=update_boundedness,key=f"Column_upper")]
+                        boundsu = upper_bound.text_input('Upper Bound', input_df[selected_column].max(),key=f"Column_upper")
+                        if not boundsu.isnumeric() or (boundsu.isnumeric() and float(boundsu) < float(input_df[selected_column].max())):
+                            # upper_bound.error(f"The number needs to be equal to or greater than the maximum value ({input_df[selected_column].max()}) of {selected_column}")
+                            boundsu = input_df[selected_column].max()
+                        bounds = [float(boundsu)]
+                        update_boundedness()
                     else:
-                        # update_boundedness()
-                        bounds = [0,1]     
+                        bounds = [0,1]      
+                        if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
+                            update_boundedness()
                     
                     if "selected_column" in locals():
                         print('selected column is here!')
                         print("selected_column",selected_column)
-                        if 'mfitted' in st.session_state  and selected_column in st.session_state['mfitted']['csv']:
+                        if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
                             print("selected_column",selected_column)
-                            st.session_state["Column_Terms"] = st.session_state['mfitted']['csv'][selected_column]['options']['terms'] if st.session_state['mfitted']['csv'][selected_column]['options']['terms'] else "-"
+                            st.session_state["Column_Terms"] = st.session_state['mfitted'][data_type_str][selected_column]['options']['terms'] if st.session_state['mfitted'][data_type_str][selected_column]['options']['terms'] else "-"
                         
                     boundedness = boundedness.strip().split(" - ")[0].replace("'","")
-                    terms_list = ["-",*list(range(2,17))]
+                    terms_list = ["-",*list(range(3,17))]
                     # col_terms = None
-                    col_terms = quanile_container.selectbox(f'Current Variable: Number of Terms', 
+                    col_terms = seed_container.selectbox(f'Current Variable: Number of Terms', 
                                         terms_list, 
-                                        index=0,
                                         on_change=update_terms, 
                                         args=(selected_column,), 
                                         key=f"Column_Terms")
                         #add SPT normal or three terms
-                    quanile_container = st.sidebar.container()
-                    quanile_container.write("Please Enter Seed Values Below:")
-                    y_values, x_values = quanile_container.columns(2)
                     default_column = input_df.columns[0]
                     print(st.session_state["Column_Terms"])
                     col_terms = int(col_terms) if isinstance(col_terms,int) else None 
@@ -760,8 +818,10 @@ if data_type == 'CSV File':
                                                    bounds = bounds,
                                                    big_plots = big_plots,
 												   user_terms = col_terms)
-                    if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted']['csv'] and 'seeds' not in st.session_state['mfitted']['csv'][selected_column]['options']:
-                        st.session_state['mfitted']['csv'][selected_column]['options']['seeds'] = {
+                    seed_container.write("Enter HDR Seed Values Below:")
+                    left_values, right_values = seed_container.columns(2)
+                    if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str] and 'seeds' not in st.session_state['mfitted'][data_type_str][selected_column]['options']:
+                        st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds'] = {
                                                                                                    'name':'hdr'+str(st.session_state["column_index"][selected_column]+1),
                                                                                                    'function':'HDR_2_0',
                                                                                                    'arguments': {'counter':'PM_Index',
@@ -770,28 +830,27 @@ if data_type == 'CSV File':
                                                                                                                         'seed3' : "0",
                                                                                                                         'seed4' : "0" }}
                         print('assigned seeds')
-                    elif 'mfitted' in st.session_state and selected_column in st.session_state['mfitted']['csv'] and f"entity {selected_column}" in st.session_state and st.session_state[f"entity {selected_column}"] == "":
-                        st.session_state['mfitted']['csv'][selected_column]['options']['seeds']['arguments'] = {'entity' : st.session_state[f"entity {selected_column}"] ,
+                    elif 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str] and f"entity {selected_column}" in st.session_state and st.session_state[f"entity {selected_column}"] == "":
+                        st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments'] = {'entity' : st.session_state[f"entity {selected_column}"] ,
                                                                                                     'varId' : st.session_state[f"varId {selected_column}"] ,
                                                                                                     'seed3' : st.session_state[f"seed3 {selected_column}"],
                                                                                                     'seed4' : st.session_state[f"seed4 {selected_column}"] }
-                                                                    
-                    st.session_state[f"entity {selected_column}"] = str(st.session_state['mfitted']['csv'][selected_column]['options']['seeds']['arguments']["entity"])
-                    st.session_state[f"varId {selected_column}"] =str( st.session_state['mfitted']['csv'][selected_column]['options']['seeds']['arguments']["varId"] )
-                    st.session_state[f"seed3 {selected_column}"] = str(st.session_state['mfitted']['csv'][selected_column]['options']['seeds']['arguments']["seed3"])
-                    st.session_state[f"seed4 {selected_column}"]  = str(st.session_state['mfitted']['csv'][selected_column]['options']['seeds']['arguments']["seed4"])
-                    if f"varId {default_column}" not in st.session_state or st.session_state[f"varId {default_column}"] is None:
-                        st.session_state[f"varId {default_column}"] = "1"
-                        update_seeds()
-                    if default_column != selected_column and st.session_state[f"varId {selected_column}"] is None:
-                        st.session_state[f"varId {selected_column}"] =  str(int(st.session_state['mfitted']['csv'][default_column]['options']['seeds']['arguments']["varId"] ) + st.session_state["column_index"][selected_column])
-                        st.session_state['mfitted']['csv'][selected_column]['options']['seeds']['arguments']["varId"]  = st.session_state[f"varId {selected_column}"] 
-                        print(f"varId {selected_column} is {st.session_state[f'varId {selected_column}']}")
-                    q_data = [float(y_values.text_input(f'entity',on_change=update_seeds,key=f"entity {selected_column}")),
-                                    float(x_values.text_input(f'varId',on_change=update_seeds,key=f"varId {selected_column}")),
-                                    float(y_values.text_input(f'seed 3',on_change=update_seeds,key=f"seed3 {selected_column}")),
-                                    float(x_values.text_input(f'seed 4',on_change=update_seeds,key=f"seed4 {selected_column}"))]                                                                   
-                    print(f"q_data is {q_data}")
+                    
+                    if st.session_state['mfitted'][data_type_str][default_column]['options']['seeds']['arguments']["varId"] is None:
+                        st.session_state['mfitted'][data_type_str][default_column]['options']['seeds']['arguments']["varId"] = "1"
+                   
+                    if default_column != selected_column and st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments']["varId"] is None:
+                        st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments']["varId"]  =  str(float(st.session_state['mfitted'][data_type_str][default_column]['options']['seeds']['arguments']["varId"] ) + st.session_state["column_index"][selected_column])
+                     
+                    st.session_state[f"entity {selected_column}"] = str(st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments']["entity"])
+                    st.session_state[f"varId {selected_column}"] = str(st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments']["varId"])
+                    st.session_state[f"seed3 {selected_column}"] = str(st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments']["seed3"])
+                    st.session_state[f"seed4 {selected_column}"]  = str(st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments']["seed4"])  
+                    seed_data = [left_values.text_input(f'entity', on_change=update_seeds, key=f"entity {selected_column}"),
+                                    right_values.text_input(f'varId', on_change=update_seeds, key=f"varId {selected_column}"),
+                                    left_values.text_input(f'seed 3', on_change=update_seeds, key=f"seed3 {selected_column}"),
+                                    right_values.text_input(f'seed 4', on_change=update_seeds, key=f"seed4 {selected_column}")]                                                                   
+                    print(f"seed_data is {seed_data}")
                 # input_df.apply(make_csv_graph,
                                                # probs = np.nan,
                                                # boundedness = boundedness,
@@ -820,7 +879,7 @@ elif data_type == 'Quantile':
                                     16:[0.001,0.005,0.010,0.050,0.100,0.250,0.350,0.500,0.650,0.750,0.900,0.950,0.970,0.990,0.995,0.999]                                    
                                 } 
     #add SPT normal or three terms
-    number_of_quantiles = int(st.sidebar.slider('Number of Quantiles',3,16,key='Quantile'))
+    number_of_quantiles = int(st.sidebar.slider('Number of Quantiles',3,16,on_change = update_max_term, key='Quantile'))
     quanile_container = st.sidebar.container()
     quanile_container.subheader("Please Enter Values Below:")
     y_values, x_values = quanile_container.columns(2)
@@ -836,41 +895,139 @@ elif data_type == 'Quantile':
         # if len(q_data) > 1:
             # q_data
     pd_data = pd.DataFrame(q_data,columns=['y','x'])
+    if isinstance(pd_data, pd.DataFrame):
+        if "column_index" not in st.session_state or len(st.session_state['column_index'] ) > 1:
+            st.session_state["column_index"] = {'x':0}
+            
     # st.subheader("Preview of Quantile Data")
     # st.write(pd_data.to_html(index=False), unsafe_allow_html=True)
-    boundedness = quanile_container.selectbox('Boundedness', 
-                                                      ("'u' - unbounded", 
-                                                       "'sl' - semi-bounded lower", 
-                                                       "'su' - semi-bounded upper",
-                                                       "'b' - bounded on both sides"),
-                                                       key=f"Quantile_boundedness")
+    # boundedness = quanile_container.selectbox('Boundedness', 
+                                                      # ("'u' - unbounded", 
+                                                       # "'sl' - semi-bounded lower", 
+                                                       # "'su' - semi-bounded upper",
+                                                       # "'b' - bounded on both sides"),
+                                                       # key=f"Quantile_boundedness")
                                                        
-    if boundedness == "'b' - bounded on both sides":
-        #convert to float and list
-        boundsl = y_values.text_input('Lower Bound', '0',key=f"Quantile_lower")
-        boundsu = x_values.text_input('Upper Bound', '1',key=f"Quantile_upper")
-        bounds = [float(boundsl),float(boundsu)]
-    elif boundedness.find("lower") != -1:
-        bounds = [float(y_values.text_input('Lower Bound', '0',key=f"Quantile_lower"))]
-    elif boundedness.find("upper") != -1:
-        bounds = [float(x_values.text_input('Upper Bound', '1',key=f"Quantile_upper"))]
-    else:
-        bounds = [0,1]
+    # if boundedness == "'b' - bounded on both sides":
+        # # convert to float and list
+        # boundsl = y_values.text_input('Lower Bound', '0',key=f"Quantile_lower")
+        # boundsu = x_values.text_input('Upper Bound', '1',key=f"Quantile_upper")
+        # bounds = [float(boundsl),float(boundsu)]
+    # elif boundedness.find("lower") != -1:
+        # bounds = [float(y_values.text_input('Lower Bound', '0',key=f"Quantile_lower"))]
+    # elif boundedness.find("upper") != -1:
+        # bounds = [float(x_values.text_input('Upper Bound', '1',key=f"Quantile_upper"))]
+    # else:
+        # bounds = [0,1]
         
-    boundedness = boundedness.strip().split(" - ")[0].replace("'","")
+    # boundedness = boundedness.strip().split(" - ")[0].replace("'","")
     # big_plots = quanile_container.checkbox("Big Graphs?")
             # big_plots = quanile_container.checkbox("Big Graphs?",value=False)
-            # make_graphs_checkbox = quanile_container.button("Make Graphs")
+    seed_container = st.sidebar.container()
+    # if not "selected_column" in locals():
+        # empty_table.empty()
+    # selected_column = graphs_container.selectbox("Select Current Variable:",  pd_data.columns, key="Big Graph Column")     
+    selected_column = graphs_container.selectbox("Select Current Variable:",  ('x',), key="Big Graph Column")     
+    boundedness = seed_container.selectbox(f'Current Variable: Boundedness', ("'u' - unbounded", 
+                                               "'sl' - semi-bounded lower", 
+                                               "'su' - semi-bounded upper",
+                                               "'b' - bounded on both sides"),
+                                               # on_change=update_boundedness,
+                                               key=f"Column_boundedness")
+    upper_bound, lower_bound = seed_container.columns(2)
+    #TODO: error handling for value too small for upper bounds or letter                                             
+    if boundedness == "'b' - bounded on both sides":
+        #convert to float and list
+        boundsl = lower_bound.text_input('Lower Bound', pd_data[selected_column].min(),key=f"Column_lower") 
+        if not boundsl.isnumeric() or (boundsl.isnumeric() and float(boundsl) > float(pd_data[selected_column].min())):
+            # lower_bound.error(f"The number needs to be equal to or less than the minimum value ({pd_data[selected_column].min()}) of {selected_column}")
+            boundsl = pd_data[selected_column].min()
+        # if 
+        # lower_bound.text_input('Lower Bound')
+        boundsu = upper_bound.text_input('Upper Bound', pd_data[selected_column].max(),key=f"Column_upper")
+        if not boundsu.isnumeric() or (boundsu.isnumeric() and float(boundsu) < float(pd_data[selected_column].max())):
+            # upper_bound.error(f"The number needs to be equal to or greater than the maximum value ({pd_data[selected_column].max()})  of {selected_column}")
+            boundsu = pd_data[selected_column].max()
+        # upper_bound.text_input('Upper Bound')
+        bounds = [float(boundsl),float(boundsu)]
+        if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
+            update_boundedness(data_type=data_type_str)
+    elif boundedness.find("lower") != -1:
+        boundsl = lower_bound.text_input('Lower Bound', pd_data[selected_column].min() ,key=f"Column_lower") 
+        if not boundsl.isnumeric() or (boundsl.isnumeric() and float(boundsl) > float(pd_data[selected_column].min())):
+            # lower_bound.error(f"The number needs to be equal to or less than the minimum value ({pd_data[selected_column].min()}) of {selected_column}")
+            boundsl = pd_data[selected_column].min()
+        bounds = [float(boundsl)]
+        if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
+            update_boundedness(data_type=data_type_str)
+    elif boundedness.find("upper") != -1:
+        boundsu = upper_bound.text_input('Upper Bound', pd_data[selected_column].max(),key=f"Column_upper")
+        if not boundsu.isnumeric() or (boundsu.isnumeric() and float(boundsu) < float(pd_data[selected_column].max())):
+            # upper_bound.error(f"The number needs to be equal to or greater than the maximum value ({pd_data[selected_column].max()}) of {selected_column}")
+            boundsu = pd_data[selected_column].max()
+        bounds = [float(boundsu)]
+        if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
+            update_boundedness(data_type=data_type_str)
+    else:
+        bounds = [0,1]      
+        if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
+            update_boundedness(data_type=data_type_str)
+    
+    # if "selected_column" in locals():
+        # print('selected column is here!')
+        # print("selected_column",selected_column)
+        # if 'mfitted' in st.session_state  and selected_column in st.session_state['mfitted'][data_type_str] :
+            # print("selected_column", selected_column)
+            # st.session_state["Column_Terms"] = st.session_state['mfitted'][data_type_str][selected_column]['options']['terms'] if st.session_state['mfitted'][data_type_str][selected_column]['options']['terms'] else number_of_quantiles
+        
+    boundedness = boundedness.strip().split(" - ")[0].replace("'","")
+    terms_list = list(range(3,number_of_quantiles+1))
+    col_terms = seed_container.selectbox(f'Current Variable: Number of Terms', 
+                        terms_list, 
+                        on_change=update_terms, 
+                        args=(selected_column,), 
+                        key=f"Column_Terms")
+    print('st.session_state["Column_Terms"]',st.session_state["Column_Terms"])
+    #add SPT normal or three terms
+    seed_container.write("Enter HDR Seed Values Below:")
+    left_values, right_values = seed_container.columns(2)
+    default_column = 'x'
+    seed_data = [left_values.text_input(f'entity',value=0, on_change=update_seeds, key=f"entity {selected_column}"),
+                        right_values.text_input(f'varId',value=1, on_change=update_seeds, key=f"varId {selected_column}"),
+                        left_values.text_input(f'seed 3',value=0, on_change=update_seeds, key=f"seed3 {selected_column}"),
+                        right_values.text_input(f'seed 4',value=0, on_change=update_seeds, key=f"seed4 {selected_column}")]                                                                   
+    make_graphs_button = seed_container.button("Make Graphs")
     big_plots = True
-    if all(pd_data.any()):
-        preprocess_charts(pd_data['x'].to_list(),
-                                        pd_data['y'].to_list(),
-                                        boundedness,
-                                        bounds,
-                                        big_plots,
-                                        pd_data.shape[0],
-                                        False,
-                                        pd_data['x'].name,
-										number_of_quantiles)
+    if make_graphs_button:
+         if big_plots:
+                col_terms = int(col_terms) if isinstance(col_terms,int) else None
+                if not col_terms is None:
+                    pd_data[[selected_column]].apply(make_csv_graph,
+                                                   probs = pd_data.y.to_list(),
+                                                   boundedness = boundedness,
+                                                   bounds = bounds,
+                                                   big_plots = big_plots,
+                                                   user_terms = col_terms)
+                    if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str] and 'seeds' not in st.session_state['mfitted'][data_type_str][selected_column]['options']:
+                        st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds'] = {
+                                                                                                   'name':'hdr'+str(st.session_state["column_index"][selected_column]+1),
+                                                                                                   'function':'HDR_2_0',
+                                                                                                   'arguments': {'counter':'PM_Index',
+                                                                                                                        'entity' : "0" ,
+                                                                                                                        'varId' : "1",
+                                                                                                                        'seed3' : "0",
+                                                                                                                        'seed4' : "0" }}
+                        print('assigned seeds')
+                    elif 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str] and f"entity {selected_column}" in st.session_state and st.session_state[f"entity {selected_column}"] == "":
+                        st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments'] = {'entity' : st.session_state[f"entity {selected_column}"] ,
+                                                                                                    'varId' : st.session_state[f"varId {selected_column}"] ,
+                                                                                                    'seed3' : st.session_state[f"seed3 {selected_column}"],
+                                                                                                    'seed4' : st.session_state[f"seed4 {selected_column}"] }                      
+                    # st.session_state[f"entity {selected_column}"] = str(st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments']["entity"])
+                    # st.session_state[f"varId {selected_column}"] = str(st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments']["varId"])
+                    # st.session_state[f"seed3 {selected_column}"] = str(st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments']["seed3"])
+                    # st.session_state[f"seed4 {selected_column}"]  = str(st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments']["seed4"])  
+                    print(f"seed_data is {seed_data}")
+               
         # pass
     input_data("Unknown",0,pd_data[['x']],pd_data['y'].to_list())
