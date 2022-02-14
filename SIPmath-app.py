@@ -15,7 +15,6 @@ import plotly.graph_objects as go
 import os
 import io
 import copy as cp
-from streamlit_plotly_events import plotly_events
 warnings.filterwarnings('ignore')
 
 path = os.path.dirname(__file__)
