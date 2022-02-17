@@ -997,7 +997,7 @@ elif data_type == 'Quantile':
     col_terms = seed_container.selectbox(f'Current Variable: Number of Terms', 
                         terms_list, 
                         on_change=update_terms, 
-                        args=(selected_column,), 
+                        args=(selected_column,data_type_str), 
                         key=f"Column_Terms")
     print('st.session_state["Column_Terms"]',st.session_state["Column_Terms"])
     #add SPT normal or three terms
