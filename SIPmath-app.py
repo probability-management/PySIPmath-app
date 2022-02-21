@@ -910,10 +910,10 @@ elif data_type == 'Quantile':
     quanile_container.subheader("Enter Values Below:")
     y_values, x_values = quanile_container.columns(2)
     q_data = [[float(y_values.number_input(f'Percentage {num}',
-                                    reference_probabilities[number_of_quantiles][num - 1] ,
+                                    value = reference_probabilities[number_of_quantiles][num - 1] ,
                                     key=f"y values {num}")),
                             float(x_values.number_input(f'Value {num}', 
-                                    0,
+                                   value = 0,
                                     key=f"x values {num}"))] for num in range(1,number_of_quantiles+1)]
         # if num > 1 and any(q_data[-1]):
             # quanile_container.error(f"enter a number greater zero for Value {num}.")
