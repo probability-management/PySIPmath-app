@@ -42,6 +42,22 @@ graphs_container = st.empty().container()
 graphs_container_main = st.empty().container()
 #Taken from the metalog
 # @st.cache(suppress_st_warning=True)
+
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
+        width: 400px;
+    }
+    [data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
+        width: 400px;
+        margin-left: -400px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 def plot(m, big_plots=None,csv=None,term=None,name=None):
     # st.write(m)
     if csv:
@@ -476,7 +492,7 @@ def preprocess_charts(x,
 	else:
 	  key = 'quantile'
 	# update_boundedness(False)
-	if (name not in st.session_state['mfitted'][key] or st.session_state['mfitted'][key][name]['fit'] is None) or (name in st.session_state['mfitted'][key] and st.session_state['mfitted'][key][name]['fit']['Validation']['term'].max() < user_term ):
+	if (name not in st.session_state['mfitted'][key] or st.session_state['mfitted'][key][name]['fit'] is None) or (name in st.session_state['mfitted'][key] and not user_term is None and st.session_state['mfitted'][key][name]['fit']['Validation']['term'].max() < user_term ):
 	  mfitted = metalog.fit(x, bounds = bounds, boundedness = boundedness, fit_method='OLS', term_limit = terms, probs=probs)
 	  # max_valid_term = int(mfitted['Validation'][(mfitted['Validation']['valid'] == 'yes') & (mfitted['Validation']['term'] <= user_term)]['term'].max())
 	  st.session_state['mfitted'][key][name] = {'fit':mfitted,'plot':{'csv':None,'big plot':None},'options':{'boundedness':boundedness, 'terms':user_term, 'bounds': bounds}}
@@ -533,11 +549,11 @@ def update_boundedness(refresh= False, data_type='csv',max=1,min=0):
     if "Column_upper" not in st.session_state:
         upper = max
     else:
-        upper = float(st.session_state["Column_upper"]) if st.session_state["Column_upper"].isnumeric() else max
+        upper = st.session_state["Column_upper"]
     if "Column_lower" not in st.session_state:
         lower = min
     else:
-        lower = float(st.session_state["Column_lower"])  if st.session_state["Column_lower"].isnumeric() else min
+        lower = st.session_state["Column_lower"]
     
     #convert to float and list 
     if boundedness == "'b' - bounded on both sides":
@@ -559,6 +575,7 @@ def update_boundedness(refresh= False, data_type='csv',max=1,min=0):
             if any([float(x[0]) != float(x[1]) for x in zip(st.session_state['mfitted'][data_type][selected_column]['options']['bounds'], bounds)]):
                 print("saved",st.session_state['mfitted'][data_type][selected_column]['options']['bounds'] , "current bounds",bounds)
                 st.session_state['mfitted'][data_type][selected_column]['options']['bounds'] = bounds
+                print("saved after saving",st.session_state['mfitted'][data_type][selected_column]['options']['bounds'] , "current bounds",bounds)
                 refresh = True
         # elif :
             # st.session_state['mfitted'][data_type][selected_column]['options']['boundedness'] = boundedness
@@ -633,7 +650,7 @@ def input_data(name,i,df,probs=None):
         default_val = max_val
         input_data_type = 'quantile'
         data_columns = ['x']
-    table_container.write("If the data above appears correct, please enter your parameters in the sidebar for this file.")
+    table_container.write("If the data above appears correct, enter your parameters in the sidebar for this file.")
     
     with st.sidebar.expander("Output Options"):
         filename = st.text_input(f'Filename {i+1}', name+'.SIPmath',key=f"{name}_{i}_filename")
@@ -665,7 +682,7 @@ def input_data(name,i,df,probs=None):
              # term_saved = 3
              
          # ###### I need to fix the problem by adjusting csv to variable then select it based on if probs is None or not.
-        if 'mfitted' in st.session_state and all([st.session_state['mfitted'][input_data_type][x]['fit'] for x in data_columns if x in st.session_state['mfitted'][input_data_type]]):
+        if 'mfitted' in st.session_state and all([st.session_state['mfitted'][input_data_type][x]['fit'] for x in data_columns if x in st.session_state['mfitted'][input_data_type]]) and all(['seeds' in st.session_state['mfitted'][input_data_type][x]['options'] for x in data_columns if x in st.session_state['mfitted'][input_data_type]]):
             term_saved = [st.session_state['mfitted'][input_data_type][x]['options']['terms'] if x in st.session_state['mfitted'][input_data_type] else None for x in data_columns]
             print("term_saved is ",term_saved)
             if all(term_saved) and "-" not in term_saved:
@@ -749,11 +766,12 @@ if data_type == 'CSV File':
             # print(st.session_state["Column_Terms"])
             # col_terms = int(col_terms) if isinstance(col_terms,int) else None                        
             # big_plots = quanile_container.checkbox("Big Graphs?",value=False)
-            # make_graphs_checkbox = quanile_container.button("Make Graphs")
+            seed_container = st.sidebar.container()
+            # make_graphs_checkbox = seed_container.button("Make Graphs")
             big_plots, make_graphs_checkbox = True, True
+            # big_plots = True
             if make_graphs_checkbox or all(input_df.any()):
                 if big_plots:
-                    seed_container = st.sidebar.container()
                     # if not "selected_column" in locals():
                         # empty_table.empty()
                     selected_column = graphs_container.selectbox("Select Current Variable:",  input_df.columns,key="Big Graph Column")     
@@ -765,37 +783,30 @@ if data_type == 'CSV File':
                                                                # on_change = update_boundedness,
                                                                key=f"Column_boundedness")
                     # update_boundedness()
-                    upper_bound, lower_bound = seed_container.columns(2)
+                    # upper_bound, lower_bound = seed_container.columns(2)
                     #TODO: error handling for value too small for upper bounds or letter                                             
                     if boundedness == "'b' - bounded on both sides":
                         #convert to float and list
-                        boundsl = lower_bound.text_input('Lower Bound', input_df[selected_column].min(),key=f"Column_lower") 
-                        if not boundsl.isnumeric() or (boundsl.isnumeric() and float(boundsl) > float(input_df[selected_column].min())):
-                            # lower_bound.error(f"The number needs to be equal to or less than the minimum value ({input_df[selected_column].min()}) of {selected_column}")
-                            boundsl = input_df[selected_column].min()
+                        boundsl = seed_container.number_input('Lower Bound',max_value  =  input_df[selected_column].min(),value  =  input_df[selected_column].min(),format = "%f",key=f"Column_lower") 
                         # if 
-                        # lower_bound.text_input('Lower Bound')
-                        boundsu = upper_bound.text_input('Upper Bound', input_df[selected_column].max(),key=f"Column_upper")
-                        if not boundsu.isnumeric() or (boundsu.isnumeric() and float(boundsu) < float(input_df[selected_column].max())):
-                            # upper_bound.error(f"The number needs to be equal to or greater than the maximum value ({input_df[selected_column].max()})  of {selected_column}")
-                            boundsu = input_df[selected_column].max()
-                        # upper_bound.text_input('Upper Bound')
+                        # seed_container.number_input('Lower Bound')
+                        boundsu = seed_container.number_input('Upper Bound',max_value  = input_df[selected_column].max(),value  = input_df[selected_column].max(),key=f"Column_upper")
+
+                        # seed_container.number_input('Upper Bound')
                         bounds = [float(boundsl),float(boundsu)]
                         if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
                             update_boundedness()
                     elif boundedness.find("lower") != -1:
-                        boundsl = lower_bound.text_input('Lower Bound', input_df[selected_column].min(),key=f"Column_lower") 
-                        if not boundsl.isnumeric() or (boundsl.isnumeric() and float(boundsl) > float(input_df[selected_column].min())):
-                            # lower_bound.error(f"The number needs to be equal to or less than the minimum value ({input_df[selected_column].min()}) of {selected_column}")
-                            boundsl = input_df[selected_column].min()
+                        boundsl = seed_container.number_input('Lower Bound',max_value  =  input_df[selected_column].min(),value  =  input_df[selected_column].min(),format = "%f",key=f"Column_lower") 
+                        # if not str(boundsl).isnumeric()  or (str(boundsl).isnumeric()  and float(boundsl) > float(input_df[selected_column].min())):
+                            # # lower_bound.error(f"The number needs to be equal to or less than the minimum value ({input_df[selected_column].min()}) of {selected_column}")
+                            # boundsl = input_df[selected_column].min()
                         bounds = [float(boundsl)]
                         if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
-                            update_boundedness()
+                            print(f'The bound is {bounds} before saving.')
+                            update_boundedness(min = input_df[selected_column].min())
                     elif boundedness.find("upper") != -1:
-                        boundsu = upper_bound.text_input('Upper Bound', input_df[selected_column].max(),key=f"Column_upper")
-                        if not boundsu.isnumeric() or (boundsu.isnumeric() and float(boundsu) < float(input_df[selected_column].max())):
-                            # upper_bound.error(f"The number needs to be equal to or greater than the maximum value ({input_df[selected_column].max()}) of {selected_column}")
-                            boundsu = input_df[selected_column].max()
+                        boundsu = seed_container.number_input('Upper Bound',max_value  = input_df[selected_column].max(),value  = input_df[selected_column].max(),key=f"Column_upper")
                         bounds = [float(boundsu)]
                         if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
                             update_boundedness()
@@ -857,10 +868,11 @@ if data_type == 'CSV File':
                     st.session_state[f"varId {selected_column}"] = str(st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments']["varId"])
                     st.session_state[f"seed3 {selected_column}"] = str(st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments']["seed3"])
                     st.session_state[f"seed4 {selected_column}"]  = str(st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds']['arguments']["seed4"])  
-                    seed_data = [left_values.text_input(f'entity', on_change=update_seeds, key=f"entity {selected_column}"),
-                                    right_values.text_input(f'varId', on_change=update_seeds, key=f"varId {selected_column}"),
-                                    left_values.text_input(f'seed 3', on_change=update_seeds, key=f"seed3 {selected_column}"),
-                                    right_values.text_input(f'seed 4', on_change=update_seeds, key=f"seed4 {selected_column}")]                                                                   
+                    seed_data = [left_values.text_input(f'entity',  key=f"entity {selected_column}"),
+                                    right_values.text_input(f'varId',  key=f"varId {selected_column}"),
+                                    left_values.text_input(f'seed 3',  key=f"seed3 {selected_column}"),
+                                    right_values.text_input(f'seed 4',  key=f"seed4 {selected_column}")]                                                                   
+                    update_seeds(data_type_str)
                     print(f"seed_data is {seed_data}")
                 # input_df.apply(make_csv_graph,
                                                # probs = np.nan,
@@ -892,23 +904,25 @@ elif data_type == 'Quantile':
     #add SPT normal or three terms
     number_of_quantiles = int(st.sidebar.slider('Number of Quantiles',3,16,on_change = update_max_term, key='Quantile'))
     quanile_container = st.sidebar.container()
-    quanile_container.subheader("Please Enter Values Below:")
+    quantile_name = quanile_container.text_input('Enter Variable Name: ',
+                                    'x' ,
+                                    key=f"Quantile Name")
+    quanile_container.subheader("Enter Values Below:")
     y_values, x_values = quanile_container.columns(2)
-    q_data = [[float(y_values.text_input(f'Percentage {num}',
+    q_data = [[float(y_values.number_input(f'Percentage {num}',
                                     reference_probabilities[number_of_quantiles][num - 1] ,
                                     key=f"y values {num}")),
-                            float(x_values.text_input(f'Value {num}', 
-                                    '0',
+                            float(x_values.number_input(f'Value {num}', 
+                                    0,
                                     key=f"x values {num}"))] for num in range(1,number_of_quantiles+1)]
         # if num > 1 and any(q_data[-1]):
-            # quanile_container.error(f"Please enter a number greater zero for Value {num}.")
+            # quanile_container.error(f"enter a number greater zero for Value {num}.")
         # Add check that items are less than the other value percentage
         # if len(q_data) > 1:
             # q_data
-    pd_data = pd.DataFrame(q_data,columns=['y','x'])
+    pd_data = pd.DataFrame(q_data,columns=['y',quantile_name])
     if isinstance(pd_data, pd.DataFrame):
-        if "column_index" not in st.session_state or len(st.session_state['column_index'] ) > 1:
-            st.session_state["column_index"] = {'x':0}
+        st.session_state["column_index"] = {quantile_name:0}
             
     # st.subheader("Preview of Quantile Data")
     # st.write(pd_data.to_html(index=False), unsafe_allow_html=True)
@@ -938,47 +952,34 @@ elif data_type == 'Quantile':
     # if not "selected_column" in locals():
         # empty_table.empty()
     # selected_column = graphs_container.selectbox("Select Current Variable:",  pd_data.columns, key="Big Graph Column")     
-    selected_column = graphs_container.selectbox("Select Current Variable:",  ('x',), key="Big Graph Column")     
+    selected_column = graphs_container.selectbox("Select Current Variable:",  [x for x in pd_data.columns if x != 'y'], key="Big Graph Column")     
     boundedness = seed_container.selectbox(f'Current Variable: Boundedness', ("'u' - unbounded", 
                                                "'sl' - semi-bounded lower", 
                                                "'su' - semi-bounded upper",
                                                "'b' - bounded on both sides"),
                                                # on_change=update_boundedness,
                                                key=f"Column_boundedness")
-    upper_bound, lower_bound = seed_container.columns(2)
+    # upper_bound, lower_bound = seed_container.columns(2)
     #TODO: error handling for value too small for upper bounds or letter                                             
     if boundedness == "'b' - bounded on both sides":
         #convert to float and list
-        boundsl = lower_bound.text_input('Lower Bound', pd_data[selected_column].min(),key=f"Column_lower") 
-        if not boundsl.isnumeric() or (boundsl.isnumeric() and float(boundsl) > float(pd_data[selected_column].min())):
-            # lower_bound.error(f"The number needs to be equal to or less than the minimum value ({pd_data[selected_column].min()}) of {selected_column}")
-            boundsl = pd_data[selected_column].min()
+        boundsl = seed_container.number_input('Lower Bound', max_value = pd_data[selected_column].min(),value = pd_data[selected_column].min(),key=f"Column_lower") 
         # if 
-        # lower_bound.text_input('Lower Bound')
-        boundsu = upper_bound.text_input('Upper Bound', pd_data[selected_column].max(),key=f"Column_upper")
-        if not boundsu.isnumeric() or (boundsu.isnumeric() and float(boundsu) < float(pd_data[selected_column].max())):
-            # upper_bound.error(f"The number needs to be equal to or greater than the maximum value ({pd_data[selected_column].max()})  of {selected_column}")
-            boundsu = pd_data[selected_column].max()
-        # upper_bound.text_input('Upper Bound')
+        # seed_container.number_input('Lower Bound')
+        boundsu = seed_container.number_input('Upper Bound', min_value = pd_data[selected_column].max(),value = pd_data[selected_column].max(),key=f"Column_upper")
+        # seed_container.number_input('Upper Bound')
         bounds = [float(boundsl),float(boundsu)]
         if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
             update_boundedness(data_type=data_type_str)
     elif boundedness.find("lower") != -1:
-        boundsl = lower_bound.text_input('Lower Bound', pd_data[selected_column].min() ,key=f"Column_lower") 
-        if not boundsl.isnumeric() or (boundsl.isnumeric() and float(boundsl) > float(pd_data[selected_column].min())):
-            # lower_bound.error(f"The number needs to be equal to or less than the minimum value ({pd_data[selected_column].min()}) of {selected_column}")
-            boundsl = pd_data[selected_column].min()
+        boundsl = seed_container.number_input('Lower Bound', max_value = pd_data[selected_column].min(),value = pd_data[selected_column].min(),key=f"Column_lower") 
         bounds = [float(boundsl)]
         if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
             update_boundedness(data_type=data_type_str)
     elif boundedness.find("upper") != -1:
-        boundsu = upper_bound.text_input('Upper Bound', pd_data[selected_column].max(),key=f"Column_upper")
-        if not boundsu.isnumeric() or (boundsu.isnumeric() and float(boundsu) < float(pd_data[selected_column].max())):
-            # upper_bound.error(f"The number needs to be equal to or greater than the maximum value ({pd_data[selected_column].max()}) of {selected_column}")
-            boundsu = pd_data[selected_column].max()
+        boundsu = seed_container.number_input('Upper Bound', min_value = pd_data[selected_column].max(),value = pd_data[selected_column].max(),key=f"Column_upper")
         bounds = [float(boundsu)]
         if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
-            
             update_boundedness(data_type=data_type_str)
     else:
         bounds = [0,1]      
@@ -1003,17 +1004,19 @@ elif data_type == 'Quantile':
     #add SPT normal or three terms
     seed_container.write("Enter HDR Seed Values Below:")
     left_values, right_values = seed_container.columns(2)
-    default_column = 'x'
-    seed_data = [left_values.text_input(f'entity',value=0, on_change=update_seeds, args = (data_type_str,),key=f"entity {selected_column}"),
-                        right_values.text_input(f'varId',value=1, on_change=update_seeds, args = (data_type_str,),key=f"varId {selected_column}"),
-                        left_values.text_input(f'seed 3',value=0, on_change=update_seeds, args = (data_type_str,),key=f"seed3 {selected_column}"),
-                        right_values.text_input(f'seed 4',value=0, on_change=update_seeds, args = (data_type_str,),key=f"seed4 {selected_column}")] 
+    default_column = quantile_name
+    seed_data = [left_values.text_input(f'entity',value=0,key=f"entity {selected_column}"),
+                        right_values.text_input(f'varId',value=1,key=f"varId {selected_column}"),
+                        left_values.text_input(f'seed 3',value=0,key=f"seed3 {selected_column}"),
+                        right_values.text_input(f'seed 4',value=0,key=f"seed4 {selected_column}")] 
     make_graphs_button = seed_container.button("Make Graphs")
     big_plots = True
     if make_graphs_button:
          if big_plots:
                 col_terms = int(col_terms) if isinstance(col_terms,int) else None
                 if not col_terms is None:
+                    if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
+                        update_boundedness(refresh = True,data_type = data_type_str)
                     pd_data[[selected_column]].apply(make_csv_graph,
                                                    probs = pd_data.y.to_list(),
                                                    boundedness = boundedness,
@@ -1042,4 +1045,4 @@ elif data_type == 'Quantile':
                     print(f"seed_data is {seed_data}")
                
         # pass
-    input_data("Unknown",0,pd_data[['x']],pd_data['y'].to_list())
+    input_data("Unknown",0,pd_data[[quantile_name]],pd_data['y'].to_list())
