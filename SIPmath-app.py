@@ -655,9 +655,10 @@ def input_data(name,i,df,probs=None):
     with st.sidebar.expander("Output Options"):
         filename = st.text_input(f'Filename {i+1}', name+'.SIPmath',key=f"{name}_{i}_filename")
         author = st.text_input(f'Author for {filename}', 'Unknown',key=f"{name}_author")
-        dependence = st.selectbox('Dependence', ('independent','Guassian Copula'),key=f"{name}_{i}_dependence")
-        if dependence != 'independent':
-            dependence = 'dependent'
+        if data_type_str != "quantile":
+            dependence = st.selectbox('Dependence', ('independent','Guassian Copula'),key=f"{name}_{i}_dependence")
+            if dependence != 'independent':
+                dependence = 'dependent'
         # boundedness = st.selectbox('Boundedness', ("'u' - unbounded", 
                                                            # "'sl' - semi-bounded lower", 
                                                            # "'su' - semi-bounded upper",
@@ -913,7 +914,8 @@ elif data_type == 'Quantile':
                                     value = reference_probabilities[number_of_quantiles][num - 1] ,
                                     key=f"y values {num}")),
                             float(x_values.number_input(f'Value {num}', 
-                                   value = 0,
+                                   value = 0.0,
+                                   # step = 0.1
                                     key=f"x values {num}"))] for num in range(1,number_of_quantiles+1)]
         # if num > 1 and any(q_data[-1]):
             # quanile_container.error(f"enter a number greater zero for Value {num}.")
