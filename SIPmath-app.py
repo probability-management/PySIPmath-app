@@ -386,62 +386,62 @@ def plot(m, big_plots=None,csv=None,term=None,name=None):
                        # ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='CDF', xlabel='Quantiles')fig, ax = plt.subplots(5, 3, figsize=(8, 3*3), sharex='col')
                        
         # i = 2
-    # if csv is False:
-    if st.session_state['mfitted'][key][name]['plot']['csv'] is None:
-        fig, ax = plt.subplots(3, 5, figsize=(10, 5), sharex='col')
-        for i in range(2, 4 + 1):
-            for j in range(0,5):
-                current_term = (2 + (i - 2)*5 + j) 
-                print(f"{current_term}")
-                if results_len + 2 > current_term and m['Validation']['valid'][current_term] == 'yes':# Check to make sure it is valid before plotting.
-                    print(f"plotting {current_term}")
-                    # Plotting PDF
-                    ax[i-2, j].plot(InitialResults[str(current_term) + ' Terms']['quantileValues'], InitialResults[str(current_term) + ' Terms']['pdfValues'],
-                          linewidth=2,c='darkblue')
+    if csv:
+        if st.session_state['mfitted'][key][name]['plot']['csv'] is None:
+            fig, ax = plt.subplots(3, 5, figsize=(10, 5), sharex='col')
+            for i in range(2, 4 + 1):
+                for j in range(0,5):
+                    current_term = (2 + (i - 2)*5 + j) 
+                    print(f"{current_term}")
+                    if results_len + 2 > current_term and m['Validation']['valid'][current_term] == 'yes':# Check to make sure it is valid before plotting.
+                        print(f"plotting {current_term}")
+                        # Plotting PDF
+                        ax[i-2, j].plot(InitialResults[str(current_term) + ' Terms']['quantileValues'], InitialResults[str(current_term) + ' Terms']['pdfValues'],
+                              linewidth=2,c='darkblue')
 
-                    # Plotting CDF
-                    # ax[i-2, j].plot(InitialResults[str(current_term) + ' Terms']['quantileValues'], InitialResults[str(current_term) + ' Terms']['cumValue'],
-                          # linewidth=2)
-                    # Plot data 
-                    # ax[i-2, j].scatter(m["dataValues"]['x'],m["dataValues"]['probs'],c='black',edgecolor='white')
-                else: #if not valid plot nothing
-                    #Plotting blank PDF chart
-                    # ax[i-2, 0].plot()
-                    # Plotting blank CDF chart
-                    ax[i-2, j].plot()
-                #Axes setup    
-                # if norm:
-                # ax[i-2, j].axis([min(res_data['quantileValues']), max(res_data['quantileValues']),
-                      # round(min(m["dataValues"]['probs']),1), round(max(m["dataValues"]['probs']),1)]) 
-                ax[i-2, j].patch.set_facecolor('white')
-                ax[i-2, j].axes.xaxis.set_ticks([])     
-                ax[i-2, j].axes.yaxis.set_ticks([])  
-                if current_term < 11:
-                    ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='PDF')
-                    # ax[i-2, j].patch.set()
-                else:
-                   ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='PDF', xlabel='Quantiles')
-                   
-                   # ax[i-2, j].patch.set(title=str(current_term) + ' Terms', ylabel='PDF', xlabel='Quantiles')
-                      
+                        # Plotting CDF
+                        # ax[i-2, j].plot(InitialResults[str(current_term) + ' Terms']['quantileValues'], InitialResults[str(current_term) + ' Terms']['cumValue'],
+                              # linewidth=2)
+                        # Plot data 
+                        # ax[i-2, j].scatter(m["dataValues"]['x'],m["dataValues"]['probs'],c='black',edgecolor='white')
+                    else: #if not valid plot nothing
+                        #Plotting blank PDF chart
+                        # ax[i-2, 0].plot()
+                        # Plotting blank CDF chart
+                        ax[i-2, j].plot()
+                    #Axes setup    
+                    # if norm:
+                    # ax[i-2, j].axis([min(res_data['quantileValues']), max(res_data['quantileValues']),
+                          # round(min(m["dataValues"]['probs']),1), round(max(m["dataValues"]['probs']),1)]) 
+                    ax[i-2, j].patch.set_facecolor('white')
+                    ax[i-2, j].axes.xaxis.set_ticks([])     
+                    ax[i-2, j].axes.yaxis.set_ticks([])  
+                    if current_term < 11:
+                        ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='PDF')
+                        # ax[i-2, j].patch.set()
+                    else:
+                       ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='PDF', xlabel='Quantiles')
+                       
+                       # ax[i-2, j].patch.set(title=str(current_term) + ' Terms', ylabel='PDF', xlabel='Quantiles')
                           
-                # if current_term != 5*3:
-                    # ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='CDF')
-                # else:
-                   # ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='CDF', xlabel='Quantiles')
-                      
-        plt.tight_layout(rect=[0,0,0.75,1])
-        temp_img = io.BytesIO()
-        plt.savefig(temp_img, format='png',transparent=True,dpi=1080)
-        st.session_state['mfitted'][key][name]['plot']['csv'] = temp_img
-        # graphs_container.pyplot(st.session_state['mfitted'][key][name]['plot']['big plot'])
-        # img_from_bytes = Image.open(st.session_state['mfitted'][key][name]['plot']['big plot'])
-        # graphs_container.image(st.session_state['mfitted'][key][name]['plot']['big plot'])
-        # img_from_bytes = Image.open(st.session_state['mfitted'][key][name]['plot']['big plot'])
-        graphs_container_main.image(st.session_state['mfitted'][key][name]['plot']['csv'],use_column_width = True)
-        print("looped")
-    else:
-        graphs_container_main.image(st.session_state['mfitted'][key][name]['plot']['csv'],use_column_width = True)
+                              
+                    # if current_term != 5*3:
+                        # ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='CDF')
+                    # else:
+                       # ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='CDF', xlabel='Quantiles')
+                          
+            plt.tight_layout(rect=[0,0,0.75,1])
+            temp_img = io.BytesIO()
+            plt.savefig(temp_img, format='png',transparent=True,dpi=1080)
+            st.session_state['mfitted'][key][name]['plot']['csv'] = temp_img
+            # graphs_container.pyplot(st.session_state['mfitted'][key][name]['plot']['big plot'])
+            # img_from_bytes = Image.open(st.session_state['mfitted'][key][name]['plot']['big plot'])
+            # graphs_container.image(st.session_state['mfitted'][key][name]['plot']['big plot'])
+            # img_from_bytes = Image.open(st.session_state['mfitted'][key][name]['plot']['big plot'])
+            graphs_container_main.image(st.session_state['mfitted'][key][name]['plot']['csv'],use_column_width = True)
+            print("looped")
+        else:
+            graphs_container_main.image(st.session_state['mfitted'][key][name]['plot']['csv'],use_column_width = True)
     
     # graphs_container.pyplot(plt)
     # return plt
@@ -610,7 +610,8 @@ def make_csv_graph(series,
                                        boundedness,
                                        bounds,
                                        big_plots,
-									   user_terms):
+									   user_terms,
+                                       graphs):
     if big_plots:
         graphs_container.markdown(f"<div id='linkto_head'></div>", unsafe_allow_html=True)
         graphs_container.header(series.name)
@@ -622,7 +623,7 @@ def make_csv_graph(series,
                                         bounds,
                                         big_plots,
                                         16,
-                                        True,
+                                        graphs,
                                         series.name,
                                         user_terms)
     else:
@@ -632,7 +633,7 @@ def make_csv_graph(series,
                                         bounds,
                                         big_plots,
                                         user_terms,
-                                        False,
+                                        graphs,
                                         series.name,
                                         user_terms)
                                     
@@ -842,7 +843,8 @@ if data_type == 'CSV File':
                                                    boundedness = boundedness,
                                                    bounds = bounds,
                                                    big_plots = big_plots,
-												   user_terms = col_terms)
+												   user_terms = col_terms,
+                                                   graphs = True)
                     seed_container.write("Enter HDR Seed Values Below:")
                     left_values, right_values = seed_container.columns(2)
                     if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str] and 'seeds' not in st.session_state['mfitted'][data_type_str][selected_column]['options']:
@@ -1016,9 +1018,16 @@ elif data_type == 'Quantile':
                         right_values.text_input(f'varId',value=1,key=f"varId {selected_column}"),
                         left_values.text_input(f'seed 3',value=0,key=f"seed3 {selected_column}"),
                         right_values.text_input(f'seed 4',value=0,key=f"seed4 {selected_column}")] 
-    make_graphs_button = seed_container.button("Make Graphs")
-    big_plots = True
+    make_graphs_button = left_values.button("Make Graph Panel")
+    run_calculations = right_values.button("Run Calculations")
+    if not run_calculations:
+        graph_panel = True
+    else:
+        graph_panel = False
     if make_graphs_button:
+        run_calculations = True
+    big_plots = True
+    if run_calculations:
          if big_plots:
                 col_terms = int(col_terms) if isinstance(col_terms,int) else None
                 if not col_terms is None:
@@ -1029,7 +1038,8 @@ elif data_type == 'Quantile':
                                                    boundedness = boundedness,
                                                    bounds = bounds,
                                                    big_plots = big_plots,
-                                                   user_terms = col_terms)
+                                                   user_terms = col_terms,
+                                                   graphs = graph_panel)
                     if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str] and 'seeds' not in st.session_state['mfitted'][data_type_str][selected_column]['options']:
                         st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds'] = {
                                                                                                    'name':'hdr'+str(st.session_state["column_index"][selected_column]+1),
