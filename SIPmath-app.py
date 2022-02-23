@@ -47,11 +47,11 @@ st.markdown(
     """
     <style>
     [data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
-        width: 400px;
+        width: 500px;
     }
     [data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
-        width: 400px;
-        margin-left: -400px;
+        width: 500px;
+        margin-left: -500px;
     }
     </style>
     """,
@@ -659,6 +659,8 @@ def input_data(name,i,df,probs=None):
             dependence = st.selectbox('Dependence', ('independent','Guassian Copula'),key=f"{name}_{i}_dependence")
             if dependence != 'independent':
                 dependence = 'dependent'
+        else:
+            dependence = 'dependent'
         # boundedness = st.selectbox('Boundedness', ("'u' - unbounded", 
                                                            # "'sl' - semi-bounded lower", 
                                                            # "'su' - semi-bounded upper",
@@ -912,9 +914,11 @@ elif data_type == 'Quantile':
     y_values, x_values = quanile_container.columns(2)
     q_data = [[float(y_values.number_input(f'Percentage {num}',
                                     value = reference_probabilities[number_of_quantiles][num - 1] ,
+                                    format = "%f",
                                     key=f"y values {num}")),
                             float(x_values.number_input(f'Value {num}', 
                                    value = 0.0,
+                                   format = "%f",
                                    # step = 0.1
                                     key=f"x values {num}"))] for num in range(1,number_of_quantiles+1)]
         # if num > 1 and any(q_data[-1]):
@@ -923,6 +927,7 @@ elif data_type == 'Quantile':
         # if len(q_data) > 1:
             # q_data
     pd_data = pd.DataFrame(q_data,columns=['y',quantile_name])
+    print(pd_data)
     if isinstance(pd_data, pd.DataFrame):
         st.session_state["column_index"] = {quantile_name:0}
             
