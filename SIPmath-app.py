@@ -729,8 +729,8 @@ def input_data(name,i,df,probs=None):
                     table_container.text("Mouse over the text then click on the clipboard icon to copy to your clipboard.")
                     with open(filename, 'rb') as f:
                         table_container.json(json.load(f))
-            else:
-                st.warning(f'{name}.SIPmath cannot be saved until all variables have been configured.')
+        else:
+            st.warning(f'{name}.SIPmath cannot be saved until all variables have been configured.')
 
 #st.title('SIPmath JSON Creator')
 st.sidebar.header('User Input Parameters')
