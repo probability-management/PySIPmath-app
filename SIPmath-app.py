@@ -660,7 +660,7 @@ def input_data(name,i,df,probs=None):
             if dependence != 'independent':
                 dependence = 'dependent'
         else:
-            dependence = 'dependent'
+            dependence = 'independent'
         # boundedness = st.selectbox('Boundedness', ("'u' - unbounded", 
                                                            # "'sl' - semi-bounded lower", 
                                                            # "'su' - semi-bounded upper",
