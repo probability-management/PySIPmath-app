@@ -743,7 +743,7 @@ if data_type == 'CSV File':
     uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type=["csv"],accept_multiple_files=False)
     if uploaded_file != None:
         input_df = None
-        uploaded_file = uploaded_file if isinstance(uploaded_file, list) else [uploaded_file]
+        uploaded_file = uploaded_file if isinstance(uploaded_file, list) else [Fploaded_file]
         for i,file in enumerate(uploaded_file):
             try:
                 input_df = pd.read_csv(file)
