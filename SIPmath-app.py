@@ -650,7 +650,7 @@ def input_data(name,i,df,probs=None):
         max_val = df.shape[0]
         default_val = max_val
         input_data_type = 'quantile'
-        data_columns = ['x']
+        data_columns = df.columns
     table_container.write("If the data above appears correct, enter your parameters in the sidebar for this file.")
     
     with st.sidebar.expander("Output Options"):
@@ -690,6 +690,7 @@ def input_data(name,i,df,probs=None):
             term_saved = [st.session_state['mfitted'][input_data_type][x]['options']['terms'] if x in st.session_state['mfitted'][input_data_type] else None for x in data_columns]
             print("term_saved is ",term_saved)
             if all(term_saved) and "-" not in term_saved:
+                print(f'Writing SIPmath with data_columns as {data_columns}')
                 boundedness = [st.session_state['mfitted'][input_data_type][x]['options']['boundedness'] if x in st.session_state['mfitted'][input_data_type] else None for x in data_columns]
                 bounds = [[y for y in st.session_state['mfitted'][input_data_type][x]['options']['bounds']] if x in st.session_state['mfitted'][input_data_type] else None for x in data_columns]
                 print(bounds)

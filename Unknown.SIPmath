@@ -2,27 +2,7 @@
     "name": "Unknown.SIPmath",
     "objectType": "sipModel",
     "libraryType": "SIPmath_3_0",
-    "dateCreated": "02-22-2022",
-    "globalVariables": [
-        {
-            "name": "correlationMatrix",
-            "value": {
-                "columns": [
-                    "x"
-                ],
-                "rows": [
-                    "x"
-                ],
-                "matrix": [
-                    {
-                        "row": "x",
-                        "col": "x",
-                        "value": 1.0
-                    }
-                ]
-            }
-        }
-    ],
+    "dateCreated": "02-25-2022",
     "provenance": "Unknown",
     "U01": {
         "rng": [
@@ -37,33 +17,14 @@
                     "seed4": 0.0
                 }
             }
-        ],
-        "copula": [
-            {
-                "arguments": {
-                    "correlationMatrix": {
-                        "type": "globalVariables",
-                        "value": "correlationMatrix"
-                    },
-                    "rng": [
-                        "hdr1"
-                    ]
-                },
-                "function": "GaussianCopula",
-                "name": "Gaussian",
-                "copulaLayer": [
-                    "c1"
-                ]
-            }
         ]
     },
     "sips": [
         {
-            "name": "x",
+            "name": "Math",
             "ref": {
-                "source": "copula",
-                "name": "Gaussian",
-                "copulaLayer": "c1"
+                "source": "rng",
+                "name": "hdr1"
             },
             "function": "Metalog_1_0",
             "arguments": {
