@@ -654,7 +654,11 @@ def input_data(name,i,df,probs=None):
     table_container.write("If the data above appears correct, enter your parameters in the sidebar for this file.")
     
     with st.sidebar.expander("Output Options"):
-        filename = st.text_input(f'Filename {i+1}', name+'.SIPmath',key=f"{name}_{i}_filename")
+        filename_container = st.container()
+        file_name_no_ext, file_ext = filename_container.columns(2)
+        filename = file_name_no_ext.text_input(f'Filename {i+1}', name,key=f"{name}_{i}_filename")
+        file_ext.write('File Extension')
+        file_ext.write('.SIPmath')
         author = st.text_input(f'Author for {filename}', 'Unknown',key=f"{name}_author")
         if data_type_str != "quantile":
             dependence = st.selectbox('Dependence', ('independent','Guassian Copula'),key=f"{name}_{i}_dependence")
@@ -705,7 +709,7 @@ def input_data(name,i,df,probs=None):
                 table_container.write(preview_options)
                 converted_seeds = [{k:convert_to_number(v) for k,v in st.session_state['mfitted'][input_data_type][x]['options']['seeds'].items()} for x in data_columns]
                 print(converted_seeds)
-                if st.button(f'Convert to {name} SIPmath Json?',key=f"{name}_term_saved"):
+                if st.button(f'Convert to {filename.split(".")[0]} SIPmath Json?',key=f"{filename.split('.')[0]}_term_saved"):
                     table_container.subheader("Preview and Download the JSON file below.")
                     data_dict_for_JSON = dict(boundedness=boundedness,
                                    bounds=bounds,
@@ -731,7 +735,7 @@ def input_data(name,i,df,probs=None):
                     with open(filename, 'rb') as f:
                         table_container.json(json.load(f))
         else:
-            st.warning(f'{name}.SIPmath cannot be saved until all variables have been configured.')
+            st.warning(f'{filename}.SIPmath cannot be saved until all variables have been configured.')
 
 #st.title('SIPmath JSON Creator')
 st.sidebar.header('User Input Parameters')
@@ -743,7 +747,7 @@ if data_type == 'CSV File':
     uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type=["csv"],accept_multiple_files=False)
     if uploaded_file != None:
         input_df = None
-        uploaded_file = uploaded_file if isinstance(uploaded_file, list) else [Fploaded_file]
+        uploaded_file = uploaded_file if isinstance(uploaded_file, list) else [uploaded_file]
         for i,file in enumerate(uploaded_file):
             try:
                 input_df = pd.read_csv(file)
