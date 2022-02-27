@@ -656,7 +656,7 @@ def input_data(name,i,df,probs=None):
     with st.sidebar.expander("Output Options"):
         filename_container = st.container()
         file_name_no_ext, file_ext = filename_container.columns(2)
-        filename = file_name_no_ext.text_input(f'Filename {i+1}', name,key=f"{name}_{i}_filename")
+        filename = file_name_no_ext.text_input(f'Filename {i+1}', name,key=f"{name}_{i}_filename") + '.SIPmath'
         file_ext.write('File Extension')
         file_ext.write('.SIPmath')
         author = st.text_input(f'Author for {filename}', 'Unknown',key=f"{name}_author")
