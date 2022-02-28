@@ -15,6 +15,7 @@ import plotly.graph_objects as go
 import os
 import io
 import copy as cp
+import altair as alt
 warnings.filterwarnings('ignore')
 
 path = os.path.dirname(__file__)
@@ -274,6 +275,29 @@ def plot(m, big_plots=None,csv=None,term=None,name=None,key=None):
     
     results_len = len(InitialResults)
     # fig, ax = plt.subplots(results_len, 2, figsize=(8, 3*results_len), sharex='col')
+    # alt_plot_all = None
+    # for i in range(2,17):
+        # # if (i-1)%6 == 0:
+            # # alt_plot_all &= alt_plot_h
+        # alt_plot = alt.Chart(InitialResults[str(i) + ' Terms'][['quantileValues','pdfValues']]).mark_line().encode(x='quantileValues',y='pdfValues').interactive()
+        # # alt_plot2 = alt.Chart(InitialResults[str(i) + ' Terms'][['quantileValues','cumValue']]).mark_line().encode(x='quantileValues',y='cumValue').interactive() \
+            # # + alt.Chart(m["dataValues"][['x','probs']]).mark_circle().encode(x='x',y='probs').interactive()
+        # # if alt_plot_all is None:
+            # # alt_plot_all = alt_plot | alt_plot2
+        # # else:
+            # # alt_plot_all &= alt_plot | alt_plot2
+        # if alt_plot_all is None:
+            # alt_plot_all = alt_plot
+        # elif (i-2)%5 == 0:
+            # alt_plot_all &= alt_plot
+        # elif (i-2)%5 != 0:
+            # alt_plot_all |= alt_plot
+    # st.altair_chart(alt_plot_all, use_container_width=True)
+    ################################################################
+    
+    
+    
+    ################################################################
     if big_plots:
         fig, ax = plt.subplots(1, 2, figsize=(10, 3), sharex='col')    
         # if st.session_state['mfitted'][key][name]['fit']
@@ -388,6 +412,7 @@ def plot(m, big_plots=None,csv=None,term=None,name=None,key=None):
                        # ax[i-2, j].set(title=str(current_term) + ' Terms', ylabel='CDF', xlabel='Quantiles')fig, ax = plt.subplots(5, 3, figsize=(8, 3*3), sharex='col')
                        
         # i = 2
+            ################################################################
     if csv:
         if st.session_state['mfitted'][key][name]['plot']['csv'] is None:
             fig, ax = plt.subplots(3, 5, figsize=(10, 5), sharex='col')
@@ -719,8 +744,8 @@ def input_data(name,i,df,probs=None):
                     preview_options[f'A {coeff_num + 1}'] = [st.session_state['mfitted'][input_data_type][x]['fit']['A'].iloc[coeff_num,st.session_state['mfitted'][input_data_type][x]['options']['terms'] - 1] for x in data_columns]
                 # preview_options = preview_options.T
                 table_container.write(preview_options)
-                converted_seeds = [{k:convert_to_number(v) for k,v in st.session_state['mfitted'][input_data_type][x]['options']['seeds'].items()} for x in data_columns]
-                print(converted_seeds)
+                converted_seeds = [{k:convert_to_number(v) for k,v in st.session_state['mfitted'][input_data_type][x]['options']['seeds'].items()} for x in data_columns ]
+                print("converted_seeds is",converted_seeds)
                 if st.button(f'Convert to {filename.split(".")[0]} SIPmath Json?',key=f"{filename.split('.')[0]}_term_saved"):
                     table_container.subheader("Preview and Download the JSON file below.")
                     data_dict_for_JSON = dict(boundedness=boundedness,
@@ -934,6 +959,9 @@ elif data_type == 'Quantile':
     quantile_names = [quanile_container.text_input(f"Enter Variable {i+1}'s Name: ",
                                     f'x{i}' , 
                                     key=f"Quantile Name {i}") for i in range(int(quantile_number_variable))]
+    if not quantile_names[0]:
+      st.warning('Please input a variable name.')
+      st.stop()
     quanile_container.subheader("Enter Values Below:")
     y_values, x_values = quanile_container.columns(2)
     q_data = [[float(y_values.number_input(f'Percentage {num}',
@@ -953,7 +981,7 @@ elif data_type == 'Quantile':
         # if len(q_data) > 1:
             # q_data
     print("q_data",q_data)
-    pd_data = pd.DataFrame(q_data,columns=['y',*quantile_names])
+    pd_data = pd.DataFrame(q_data,columns=['',*quantile_names]).set_index('')
     print(pd_data)
     if isinstance(pd_data, pd.DataFrame):
         st.session_state["column_index"] = {k:v for v,k in enumerate(pd_data.columns)}
@@ -986,7 +1014,7 @@ elif data_type == 'Quantile':
     # if not "selected_column" in locals():
         # empty_table.empty()
     # selected_column = graphs_container.selectbox("Select Current Variable:",  pd_data.columns, key="Big Graph Column")     
-    selected_column = graphs_container.selectbox("Select Current Variable:",  [x for x in pd_data.columns if x != 'y'], key="Big Graph Column")     
+    selected_column = graphs_container.selectbox("Select Current Variable:",  [x for x in pd_data.columns], key="Big Graph Column")     
     boundedness = seed_container.selectbox(f'Current Variable: Boundedness', ("'u' - unbounded", 
                                                "'sl' - semi-bounded lower", 
                                                "'su' - semi-bounded upper",
@@ -1061,7 +1089,7 @@ elif data_type == 'Quantile':
                     if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
                         update_boundedness(refresh = True,data_type = data_type_str)
                     pd_data[[selected_column]].apply(make_csv_graph,
-                                                   probs = pd_data.y.to_list(),
+                                                   probs = pd_data.index.to_list(),
                                                    boundedness = boundedness,
                                                    bounds = bounds,
                                                    big_plots = big_plots,
@@ -1089,4 +1117,4 @@ elif data_type == 'Quantile':
                     print(f"seed_data is {seed_data}")
                
         # pass
-    input_data("Unknown",0,pd_data[[selected_column]],pd_data['y'].to_list())
+    input_data("Unknown",0,pd_data[[selected_column]],pd_data.index.to_list())
