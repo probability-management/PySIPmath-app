@@ -58,14 +58,16 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-def plot(m, big_plots=None,csv=None,term=None,name=None):
+def plot(m, big_plots=None,csv=None,term=None,name=None,key=None):
     # st.write(m)
-    if csv:
-      key = 'csv'
-    else: 
-      key = 'quantile'
+    # print("is_quantile is ",is_quantile," csv is ",csv)
+    # if is_quantile or not csv: 
+      # key = 'quantile'
+    # else:
+      # key = 'csv'
     # if res_data
     # Collecting data to set limits of axes
+    print(f"running plot for {name} in {key}")
     if 'res_data' not in st.session_state['mfitted'][key][name]:
         # st.write("notthere")
         res_data = pd.DataFrame({'term': np.repeat(str(m['params']['term_lower_bound']) \
@@ -487,13 +489,14 @@ def preprocess_charts(x,
                        # bounds)
 	if 'mfitted' not in st.session_state:
 	  st.session_state['mfitted'] = {'csv':{},'quantile':{}}
-	if csv:
+	if probs is np.nan:
 	  key = 'csv'
 	else:
 	  key = 'quantile'
 	# update_boundedness(False)
 	if (name not in st.session_state['mfitted'][key] or st.session_state['mfitted'][key][name]['fit'] is None) or (name in st.session_state['mfitted'][key] and not user_term is None and st.session_state['mfitted'][key][name]['fit']['Validation']['term'].max() < user_term ):
-	  mfitted = metalog.fit(x, bounds = bounds, boundedness = boundedness, fit_method='OLS', term_limit = terms, probs=probs)
+	  print(f"running metalog fit for {name} in {key}")
+	  mfitted = metalog.fit(x, bounds = bounds, boundedness = boundedness, fit_method ='OLS', term_limit = terms, probs=probs)
 	  # max_valid_term = int(mfitted['Validation'][(mfitted['Validation']['valid'] == 'yes') & (mfitted['Validation']['term'] <= user_term)]['term'].max())
 	  st.session_state['mfitted'][key][name] = {'fit':mfitted,'plot':{'csv':None,'big plot':None},'options':{'boundedness':boundedness, 'terms':user_term, 'bounds': bounds}}
 	print("user term is",user_term)
@@ -512,7 +515,7 @@ def preprocess_charts(x,
 	# else:
 	    # term = int(16) 
 	# plot(mfitted, True,csv=None,term=None,name=name)
-	plot(st.session_state['mfitted'][key][name]['fit'],big_plots,csv,user_term,name=name)
+	plot(st.session_state['mfitted'][key][name]['fit'],big_plots,csv,user_term,name=name,key=key)
 
 def sent_to_pastebin(filename,file):
     payload = {"api_dev_key" : '7lc7IMiM_x5aMUFFudCiCo35t4o0Sxx6',
@@ -616,26 +619,35 @@ def make_csv_graph(series,
         graphs_container.markdown(f"<div id='linkto_head'></div>", unsafe_allow_html=True)
         graphs_container.header(series.name)
         print(probs)
-    if probs is np.nan:
-        preprocess_charts(series.to_list(),
-                                        probs,
-                                        boundedness,
-                                        bounds,
-                                        big_plots,
-                                        16,
-                                        graphs,
-                                        series.name,
-                                        user_terms)
-    else:
-        preprocess_charts(series.to_list(),
-                                        probs,
-                                        boundedness,
-                                        bounds,
-                                        big_plots,
-                                        user_terms,
-                                        graphs,
-                                        series.name,
-                                        user_terms)
+    preprocess_charts(series.to_list(),
+                                    probs,
+                                    boundedness,
+                                    bounds,
+                                    big_plots,
+                                    16 if probs is np.nan else user_terms,
+                                    graphs,
+                                    series.name,
+                                    user_terms)
+    # if probs is np.nan:
+        # preprocess_charts(series.to_list(),
+                                        # probs,
+                                        # boundedness,
+                                        # bounds,
+                                        # big_plots,
+                                        # 16,
+                                        # graphs,
+                                        # series.name,
+                                        # user_terms)
+    # else:
+        # preprocess_charts(series.to_list(),
+                                        # probs,
+                                        # boundedness,
+                                        # bounds,
+                                        # big_plots,
+                                        # user_terms,
+                                        # graphs,
+                                        # series.name,
+                                        # user_terms)
                                     
     return None
 # @st.cache
@@ -692,8 +704,8 @@ def input_data(name,i,df,probs=None):
          # ###### I need to fix the problem by adjusting csv to variable then select it based on if probs is None or not.
         if 'mfitted' in st.session_state and all([st.session_state['mfitted'][input_data_type][x]['fit'] for x in data_columns if x in st.session_state['mfitted'][input_data_type]]) and all(['seeds' in st.session_state['mfitted'][input_data_type][x]['options'] for x in data_columns if x in st.session_state['mfitted'][input_data_type]]):
             term_saved = [st.session_state['mfitted'][input_data_type][x]['options']['terms'] if x in st.session_state['mfitted'][input_data_type] else None for x in data_columns]
-            print("term_saved is ",term_saved)
-            if all(term_saved) and "-" not in term_saved:
+            print("term_saved is ",type(term_saved[0]))
+            if all(term_saved) and "--------Enter number of terms--------" not in term_saved:
                 print(f'Writing SIPmath with data_columns as {data_columns}')
                 boundedness = [st.session_state['mfitted'][input_data_type][x]['options']['boundedness'] if x in st.session_state['mfitted'][input_data_type] else None for x in data_columns]
                 bounds = [[y for y in st.session_state['mfitted'][input_data_type][x]['options']['bounds']] if x in st.session_state['mfitted'][input_data_type] else None for x in data_columns]
@@ -776,9 +788,9 @@ if data_type == 'CSV File':
             # col_terms = int(col_terms) if isinstance(col_terms,int) else None                        
             # big_plots = quanile_container.checkbox("Big Graphs?",value=False)
             seed_container = st.sidebar.container()
-            # make_graphs_checkbox = seed_container.button("Make Graphs")
-            big_plots, make_graphs_checkbox = True, True
-            # big_plots = True
+            make_graphs_checkbox = seed_container.button("Make Graph Panel")
+            # big_plots, make_graphs_checkbox = True, True
+            big_plots = True
             if make_graphs_checkbox or all(input_df.any()):
                 if big_plots:
                     # if not "selected_column" in locals():
@@ -829,10 +841,10 @@ if data_type == 'CSV File':
                         print("selected_column",selected_column)
                         if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str]:
                             print("selected_column",selected_column)
-                            st.session_state["Column_Terms"] = st.session_state['mfitted'][data_type_str][selected_column]['options']['terms'] if st.session_state['mfitted'][data_type_str][selected_column]['options']['terms'] else "-"
+                            st.session_state["Column_Terms"] = st.session_state['mfitted'][data_type_str][selected_column]['options']['terms'] if st.session_state['mfitted'][data_type_str][selected_column]['options']['terms'] else "--------Enter number of terms--------"
                         
                     boundedness = boundedness.strip().split(" - ")[0].replace("'","")
-                    terms_list = ["-",*list(range(3,17))]
+                    terms_list = ["--------Enter number of terms--------",*list(range(3,17))]
                     # col_terms = None
                     col_terms = seed_container.selectbox(f'Current Variable: Number of Terms', 
                                         terms_list, 
@@ -842,14 +854,14 @@ if data_type == 'CSV File':
                         #add SPT normal or three terms
                     default_column = input_df.columns[0]
                     print(st.session_state["Column_Terms"])
-                    col_terms = int(col_terms) if isinstance(col_terms,int) else None 
+                    col_terms = int(col_terms) if isinstance(col_terms,int) else 2 
                     input_df[[selected_column]].apply(make_csv_graph,
                                                    probs = np.nan,
                                                    boundedness = boundedness,
                                                    bounds = bounds,
                                                    big_plots = big_plots,
 												   user_terms = col_terms,
-                                                   graphs = True)
+                                                   graphs = make_graphs_checkbox )
                     seed_container.write("Enter HDR Seed Values Below:")
                     left_values, right_values = seed_container.columns(2)
                     if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str] and 'seeds' not in st.session_state['mfitted'][data_type_str][selected_column]['options']:
@@ -914,14 +926,21 @@ elif data_type == 'Quantile':
     #add SPT normal or three terms
     number_of_quantiles = int(st.sidebar.slider('Number of Quantiles',3,16,on_change = update_max_term, key='Quantile'))
     quanile_container = st.sidebar.container()
-    quantile_name = quanile_container.text_input('Enter Variable Name: ',
-                                    'x' ,
-                                    key=f"Quantile Name")
+    quantile_number_variable = 1
+    # quantile_number_variable = quanile_container.number_input('Number of Variables: ',
+                                    # value=1,
+                                    # min_value = 1,
+                                    # key=f"Number of Quantiles")
+    quantile_names = [quanile_container.text_input(f"Enter Variable {i+1}'s Name: ",
+                                    f'x{i}' , 
+                                    key=f"Quantile Name {i}") for i in range(int(quantile_number_variable))]
     quanile_container.subheader("Enter Values Below:")
     y_values, x_values = quanile_container.columns(2)
     q_data = [[float(y_values.number_input(f'Percentage {num}',
                                     value = reference_probabilities[number_of_quantiles][num - 1] ,
                                     format = "%f",
+                                    min_value = 0.0,
+                                    max_value = 1.0,
                                     key=f"y values {num}")),
                             float(x_values.number_input(f'Value {num}', 
                                    value = 0.0,
@@ -933,10 +952,11 @@ elif data_type == 'Quantile':
         # Add check that items are less than the other value percentage
         # if len(q_data) > 1:
             # q_data
-    pd_data = pd.DataFrame(q_data,columns=['y',quantile_name])
+    print("q_data",q_data)
+    pd_data = pd.DataFrame(q_data,columns=['y',*quantile_names])
     print(pd_data)
     if isinstance(pd_data, pd.DataFrame):
-        st.session_state["column_index"] = {quantile_name:0}
+        st.session_state["column_index"] = {k:v for v,k in enumerate(pd_data.columns)}
             
     # st.subheader("Preview of Quantile Data")
     # st.write(pd_data.to_html(index=False), unsafe_allow_html=True)
@@ -1018,21 +1038,23 @@ elif data_type == 'Quantile':
     #add SPT normal or three terms
     seed_container.write("Enter HDR Seed Values Below:")
     left_values, right_values = seed_container.columns(2)
-    default_column = quantile_name
+    default_column = quantile_names
     seed_data = [left_values.text_input(f'entity',value=0,key=f"entity {selected_column}"),
                         right_values.text_input(f'varId',value=1,key=f"varId {selected_column}"),
                         left_values.text_input(f'seed 3',value=0,key=f"seed3 {selected_column}"),
-                        right_values.text_input(f'seed 4',value=0,key=f"seed4 {selected_column}")] 
+                        right_values.text_input(f'seed 4',value=0,key=f"seed4 {selected_column}")]                                                                  
+    update_seeds(data_type_str)
     make_graphs_button = left_values.button("Make Graph Panel")
     run_calculations = right_values.button("Run Calculations")
-    if not run_calculations:
-        graph_panel = True
-    else:
-        graph_panel = False
-    if make_graphs_button:
-        run_calculations = True
+    # if not run_calculations:
+        # graph_panel = True
+    # else:
+        # graph_panel = False
+    # if make_graphs_button:
+        # run_calculations = True
+        
     big_plots = True
-    if run_calculations:
+    if run_calculations or make_graphs_button:
          if big_plots:
                 col_terms = int(col_terms) if isinstance(col_terms,int) else None
                 if not col_terms is None:
@@ -1044,7 +1066,7 @@ elif data_type == 'Quantile':
                                                    bounds = bounds,
                                                    big_plots = big_plots,
                                                    user_terms = col_terms,
-                                                   graphs = graph_panel)
+                                                   graphs = make_graphs_button)
                     if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str] and 'seeds' not in st.session_state['mfitted'][data_type_str][selected_column]['options']:
                         st.session_state['mfitted'][data_type_str][selected_column]['options']['seeds'] = {
                                                                                                    'name':'hdr'+str(st.session_state["column_index"][selected_column]+1),
@@ -1067,4 +1089,4 @@ elif data_type == 'Quantile':
                     print(f"seed_data is {seed_data}")
                
         # pass
-    input_data("Unknown",0,pd_data[[quantile_name]],pd_data['y'].to_list())
+    input_data("Unknown",0,pd_data[[selected_column]],pd_data['y'].to_list())
