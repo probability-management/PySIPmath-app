@@ -580,8 +580,9 @@ def sent_to_pastebin(filename,file):
     return r
  
 def convert_to_number(value):
+    
     if isinstance(value,dict):
-        value = {k:float(v) if isinstance(v,str) and v != 'PM_Index' else v for k,v in value.items()}
+        value = {k:float(v) if isinstance(v,str) and (v.isnumeric() or (data_type_str == 'csv' and v != 'PM_Index')) else v for k,v in value.items()}
     return value
 
 def update_max_term(variable_index,variable_name):
@@ -604,7 +605,7 @@ def update_terms(selected_column, data_type='csv', variable_index=0):
             st.session_state['quantiles_data'][selected_column]['col_terms'] = st.session_state[f"Column_Terms {selected_column} {variable_index}"]
 def update_values(variable_name, session_key, row):
     if 'quantiles_data' in st.session_state and variable_name in st.session_state['quantiles_data'] and 'q_data' in st.session_state['quantiles_data'][variable_name]:
-        # st.session_state['quantiles_data'][quantile_names[quantile_index]]['q_data']
+        # st.session_state['quantiles_data'][quantile_name[quantile_index]]['q_data']
         df = st.session_state['quantiles_data'][variable_name]['q_data'].reset_index()
         col = 0 if session_key[0] == 'y' else 1
         print("value in df is",df.iloc[row,col])
@@ -616,7 +617,7 @@ def update_values(variable_name, session_key, row):
           st.session_state['mfitted'][data_type_str].pop(variable_name,None)
 def update_correlations(session_key):
     if 'quantiles_data' in st.session_state and 'correlations' in st.session_state['quantiles_data']:
-        # st.session_state['quantiles_data'][quantile_names[quantile_index]]['q_data']
+        # st.session_state['quantiles_data'][quantile_name[quantile_index]]['q_data']
         df = st.session_state['quantiles_data']['correlations']
         col,row = session_key.split(" vs ")
         print("col,row",col,row)
@@ -629,9 +630,12 @@ def update_correlations(session_key):
 def update_input_name():
   print("Big Graph Column is", st.session_state["Big Graph Column"])
   st.session_state["quantile_counter"]  = st.session_state['quantiles_data'][st.session_state["Big Graph Column"]]['pos']
-  
+
+def update_variable_count():
+    st.session_state['quantiles_variable_count'] = st.session_state["Number of Quantiles Variables"] 
+
 def update_counter(value):
-  if 'quantile_counter' in st.session_state:
+  if 'quantile_counter' in st.session_state and 'Number of Quantiles Variables' in st.session_state:
     if (value == -1 and st.session_state['quantile_counter'] == 1) or (value == 1 and st.session_state['quantile_counter'] == st.session_state['Number of Quantiles Variables']):
       return None
     st.session_state['quantile_counter'] += value
@@ -710,6 +714,18 @@ def update_seeds(data_type='csv',  entity = None,  varId = None,  seed3 = None, 
     selected_column = st.session_state["Big Graph Column"] if data_type == 'csv' else variable_name
     
     if data_type != 'csv' and 'quantiles_data' in st.session_state and selected_column in st.session_state['quantiles_data'] and 'seeds' in st.session_state['quantiles_data'][selected_column]:
+        for item in ['entity','seed3','seed4']:
+          if st.session_state[f"{item} {selected_column}"].isnumeric():
+            st.session_state['quantiles_data'][selected_column]['seeds']['arguments'][item] = st.session_state[f"{item} {selected_column}"] 
+          else:
+            st.warning(f'{item} must be a number.')
+            # st.stop()
+        if st.session_state[f"varId {selected_column}"].strip():
+          st.session_state['quantiles_data'][selected_column]['seeds']['arguments']['varId'] = st.session_state[f"varId {selected_column}"] 
+        else:
+            st.warning(f'varId must have a value.')
+            # st.stop()
+          
         st.session_state['quantiles_data'][selected_column]['seeds']['arguments'] = {'counter':'PM_Index',
                                                                                 'entity' : st.session_state[f"entity {selected_column}"] ,
                                                                                 'varId' : st.session_state[f"varId {selected_column}"] ,
@@ -819,6 +835,10 @@ def input_data(name,i,df,probs=None):
           print("corrs_data", corrs_data)
           correlation_df = pd.DataFrame(corrs_data,columns=df.columns,index=df.columns)
           st.session_state['quantiles_data']['correlations'] = correlation_df
+          if graphs_container.button('Store Correlation', key='correlation_done'):
+            if not np.all(np.linalg.eigvals(correlation_df.fillna(0)) > 0):
+              graphs_container.warning("")
+              st.stop()
           print(correlation_df)
             # pass
         if dependence != 'independent':
@@ -887,6 +907,7 @@ def input_data(name,i,df,probs=None):
                     data_dict_for_JSON = dict(boundedness=boundedness,
                                    bounds=bounds,
                                    term_saved=term_saved)
+                    print("probs in JSON", probs)
                     PySIP.Json(SIPdata=df,
                                    file_name=filename,
                                    author=author,
@@ -1008,6 +1029,7 @@ if data_type == 'CSV File':
                     boundedness = boundedness.strip().split(" - ")[0].replace("'","")
                     terms_list = ["--------Enter number of terms--------",*list(range(3,17))]
                     # col_terms = None
+                    
                     col_terms = seed_container.selectbox(f'Current Variable: Number of Terms', 
                                         terms_list, 
                                         on_change=update_terms, 
@@ -1016,7 +1038,7 @@ if data_type == 'CSV File':
                         #add SPT normal or three terms
                     default_column = input_df.columns[0]
                     print(st.session_state["Column_Terms"])
-                    col_terms = int(col_terms) if isinstance(col_terms,int) else 2 
+                    col_terms = int(col_terms) if isinstance(col_terms,int) else 3 
                     input_df[[selected_column]].apply(make_csv_graph,
                                                    probs = np.nan,
                                                    boundedness = boundedness,
@@ -1088,14 +1110,19 @@ elif data_type == 'Quantile':
     #add SPT normal or three terms
     quanile_container = st.sidebar.container()
     # quantile_number_variable = 1
+    if 'quantiles_variable_count' in st.session_state:
+      # st.session_state["Number of Quantiles Variables"] = st.session_state['quantiles_variable_count']
+      st.session_state["Number of Quantiles Variables"] = st.session_state['quantiles_variable_count']
     quantile_number_variable = int(quanile_container.number_input('Number of Variables: ',
                                     value=int(1),
                                     min_value = 1,
+                                    on_change = update_variable_count,
                                     key="Number of Quantiles Variables"))
+    st.session_state['quantiles_variable_count'] = quantile_number_variable
                                     # I could write the data into a dict or dataframe then look it up using variable name and variable type
     if not 'quantiles_data' in st.session_state:
         st.session_state['quantiles_data'] = {}
-        # quantile_names = [] 
+        # quantile_name = [] 
         # q_data = [] 
         # number_of_quantiles = [] 
         # terms_list = [] 
@@ -1103,12 +1130,12 @@ elif data_type == 'Quantile':
         # boundedness= []
     else:
         # st.session_state['quantiles_data']
-        # quantile_names = [x for x in st.session_state['quantiles_data']] 
-        # q_data = [st.session_state['quantiles_data'][x]['q_data'] for x in quantile_names] 
-        # number_of_quantiles = [st.session_state['quantiles_data'][x]['number_of_quantiles'] for x in quantile_names] 
-        # terms_list = [st.session_state['quantiles_data'][x]['terms_list'] for x in quantile_names] 
-        # col_terms = [st.session_state['quantiles_data'][x]['col_terms'] for x in quantile_names] 
-        # boundedness = [st.session_state['quantiles_data'][x]['boundedness'] for x in quantile_names] 
+        # quantile_name = [x for x in st.session_state['quantiles_data']] 
+        # q_data = [st.session_state['quantiles_data'][x]['q_data'] for x in quantile_name] 
+        # number_of_quantiles = [st.session_state['quantiles_data'][x]['number_of_quantiles'] for x in quantile_name] 
+        # terms_list = [st.session_state['quantiles_data'][x]['terms_list'] for x in quantile_name] 
+        # col_terms = [st.session_state['quantiles_data'][x]['col_terms'] for x in quantile_name] 
+        # boundedness = [st.session_state['quantiles_data'][x]['boundedness'] for x in quantile_name] 
         pass
     with quanile_container.expander("Variable Input", expanded=True):      
         # for num in range(1,quantile_number_variable+1): 
@@ -1118,65 +1145,69 @@ elif data_type == 'Quantile':
         quantile_index = num - 1
         st.header(f"Variable {num}'s Inputs")
         current_variable_name = f'x{num}'
-        for x in st.session_state['quantiles_data']:
-          if st.session_state['quantiles_data'][x]['pos'] == num:
-            current_variable_name = x
-            break
-        quantile_names = st.text_input(f"Enter Variable {num}'s Name: ",
+        try:
+          for x in st.session_state['quantiles_data']:
+            if st.session_state['quantiles_data'][x]['pos'] == num:
+              current_variable_name = x
+              break
+        except KeyError:
+          pass 
+        if not current_variable_name in st.session_state['quantiles_data']:
+           st.session_state['quantiles_data'][current_variable_name] = {'pos':num}
+        quantile_name = st.text_input(f"Enter Variable {num}'s Name: ",
                                         current_variable_name, 
                                         on_change=update_name,
                                         args=(num,),
                                         key=f"Quantile Name {num}")           
-        if not all([x != '' for x in quantile_names]):
+        if not all([x != '' for x in quantile_name]):
           st.warning('All variables must be named.')
           st.stop()
-        if not quantile_names in st.session_state['quantiles_data']:
-           st.session_state['quantiles_data'][quantile_names] = {'pos':num}
         #Fill in saved data
-        print("quantile_names",len(quantile_names))
+        print("quantile_name",len(quantile_name))
 
-        if 'quantiles_data' in st.session_state and quantile_names in st.session_state['quantiles_data'] and 'number_of_quantiles' in st.session_state['quantiles_data'][quantile_names]:
-            st.session_state[f'Quantile{num}'] = st.session_state['quantiles_data'][quantile_names]['number_of_quantiles']
-            if 'q_data' in st.session_state['quantiles_data'][quantile_names]:
-                for j,y in enumerate(st.session_state['quantiles_data'][quantile_names]['q_data'].reset_index().to_numpy()):
-                    st.session_state[f"y values {quantile_names} {num*j+1}"] = y[0]
-                    st.session_state[f"x values {quantile_names} {num*j+1}"] = y[1]
-            if 'col_terms' in st.session_state['quantiles_data'][quantile_names]:
-                st.session_state[f"Column_Terms {quantile_names} {quantile_index}"] = st.session_state['quantiles_data'][quantile_names]['col_terms']
-            if 'boundedness' in st.session_state['quantiles_data'][quantile_names]:
-                if st.session_state['quantiles_data'][quantile_names]['boundedness'] == 'b':
-                    st.session_state[f"Column_Terms {quantile_names} {quantile_index}"] = 3
+        if 'quantiles_data' in st.session_state and quantile_name in st.session_state['quantiles_data'] and 'number_of_quantiles' in st.session_state['quantiles_data'][quantile_name]:
+            st.session_state[f'Quantile{num}'] = st.session_state['quantiles_data'][quantile_name]['number_of_quantiles']
+            if 'q_data' in st.session_state['quantiles_data'][quantile_name]:
+                print("writing q-data")
+                for j,y in enumerate(st.session_state['quantiles_data'][quantile_name]['q_data'].reset_index().to_numpy()):
+                    st.session_state[f"y values {quantile_name} {num*(j+1)}"] = y[0]
+                    st.session_state[f"x values {quantile_name} {num*(j+1)}"] = y[1]
+            if 'col_terms' in st.session_state['quantiles_data'][quantile_name]:
+                st.session_state[f"Column_Terms {quantile_name} {quantile_index}"] = st.session_state['quantiles_data'][quantile_name]['col_terms']
+            if 'boundedness' in st.session_state['quantiles_data'][quantile_name]:
+                if st.session_state['quantiles_data'][quantile_name]['boundedness'] == 'b':
+                    st.session_state[f"Column_Terms {quantile_name} {quantile_index}"] = 3
                     #convert to float and list
-                    st.session_state["Column_lower"] = st.session_state['quantiles_data'][quantile_names]['bounds'][0]
+                    st.session_state["Column_lower"] = st.session_state['quantiles_data'][quantile_name]['bounds'][0]
                     # seed_container.number_input('Lower Bound')
-                    st.session_state["Column_upper"] = st.session_state['quantiles_data'][quantile_names]['bounds'][1]
-                elif st.session_state['quantiles_data'][quantile_names]['boundedness'] == 'sl':
-                    st.session_state[f"Column_Terms {quantile_names} {quantile_index}"] = 1
+                    st.session_state["Column_upper"] = st.session_state['quantiles_data'][quantile_name]['bounds'][1]
+                elif st.session_state['quantiles_data'][quantile_name]['boundedness'] == 'sl':
+                    st.session_state[f"Column_Terms {quantile_name} {quantile_index}"] = 1
                     #convert to float and list
-                    st.session_state["Column_lower"] = st.session_state['quantiles_data'][quantile_names]['bounds'][-1]
-                elif st.session_state['quantiles_data'][quantile_names]['boundedness'] == 'su':
-                    st.session_state[f"Column_Terms {quantile_names} {quantile_index}"] = 2
+                    st.session_state["Column_lower"] = st.session_state['quantiles_data'][quantile_name]['bounds'][-1]
+                elif st.session_state['quantiles_data'][quantile_name]['boundedness'] == 'su':
+                    st.session_state[f"Column_Terms {quantile_name} {quantile_index}"] = 2
                     # seed_container.number_input('Lower Bound')
-                    st.session_state["Column_upper"] = st.session_state['quantiles_data'][quantile_names]['bounds'][-1]
+                    st.session_state["Column_upper"] = st.session_state['quantiles_data'][quantile_name]['bounds'][-1]
                 else: 
-                    st.session_state[f"Column_Terms {quantile_names} {quantile_index}"] = 0
+                    st.session_state[f"Column_Terms {quantile_name} {quantile_index}"] = 0
                      
-                if 'seeds' in st.session_state['quantiles_data'][quantile_names]:    
-                    st.session_state[f"entity {quantile_names}"] = st.session_state['quantiles_data'][quantile_names]['seeds']['arguments']['entity']
-                    st.session_state[f"varId {quantile_names}"] = st.session_state['quantiles_data'][quantile_names]['seeds']['arguments']['varId']
-                    st.session_state[f"seed3 {quantile_names}"] = st.session_state['quantiles_data'][quantile_names]['seeds']['arguments']['seed3']
-                    st.session_state[f"seed4 {quantile_names}"] = st.session_state['quantiles_data'][quantile_names]['seeds']['arguments']['seed4']
+                if 'seeds' in st.session_state['quantiles_data'][quantile_name]:    
+                    st.session_state[f"entity {quantile_name}"] = st.session_state['quantiles_data'][quantile_name]['seeds']['arguments']['entity']
+                    st.session_state[f"varId {quantile_name}"] = st.session_state['quantiles_data'][quantile_name]['seeds']['arguments']['varId']
+                    st.session_state[f"seed3 {quantile_name}"] = st.session_state['quantiles_data'][quantile_name]['seeds']['arguments']['seed3']
+                    st.session_state[f"seed4 {quantile_name}"] = st.session_state['quantiles_data'][quantile_name]['seeds']['arguments']['seed4']
 
         number_of_quantiles =  int(st.selectbox('Number of Quantiles', 
-                                                                      range(3,17), 
+                                                                      range(3,6), 
                                                                       on_change = update_max_term,
-                                                                      args = (num,quantile_names),
+                                                                      args = (num,quantile_name),
                                                                       key = f'Quantile{num}'))
-        st.session_state['quantiles_data'][quantile_names]['number_of_quantiles'] = number_of_quantiles
+        st.session_state['quantiles_data'][quantile_name]['number_of_quantiles'] = number_of_quantiles
         print("number_of_quantiles",number_of_quantiles)
         st.subheader("Enter Values Below:")
         terms_list = list(range(3,number_of_quantiles+1))
-        st.session_state['quantiles_data'][quantile_names]['terms_list'] = terms_list
+        st.session_state['quantiles_data'][quantile_name]['terms_list'] = terms_list
         y_values, x_values = st.columns(2)
         q_data = pd.DataFrame([[float(y_values.number_input(f'Percentage {i}',
                                         value = reference_probabilities[number_of_quantiles][i - 1] ,
@@ -1184,29 +1215,29 @@ elif data_type == 'Quantile':
                                         min_value = 0.0,
                                         max_value = 1.0,
                                         on_change = update_values,
-                                        args = (quantile_names,f"y values {quantile_names} {num*i}", i - 1),
-                                        key=f"y values {quantile_names} {num*i}")),
+                                        args = (quantile_name,f"y values {quantile_name} {num*i}", i - 1),
+                                        key=f"y values {quantile_name} {num*i}")),
                                 float(x_values.number_input(f'Value {i}', 
                                        value = 0.0,
                                        format = "%f",
                                        # step = 0.1
                                         on_change = update_values,
-                                        args = (quantile_names,f"x values {quantile_names} {num*i}", i - 1),
-                                        key=f"x values {quantile_names} {num*i}"))] for i in range(1,number_of_quantiles+1)],columns=['',quantile_names]).set_index('')   
-        if 'q_data' in st.session_state['quantiles_data'][quantile_names]:
-          if q_data[quantile_names].any():
-            st.session_state['quantiles_data'][quantile_names]['q_data'] = q_data       
+                                        args = (quantile_name,f"x values {quantile_name} {num*i}", i - 1),
+                                        key=f"x values {quantile_name} {num*i}"))] for i in range(1,number_of_quantiles+1)],columns=['',quantile_name]).set_index('')   
+        if 'q_data' in st.session_state['quantiles_data'][quantile_name]:
+          if q_data[quantile_name].any():
+            st.session_state['quantiles_data'][quantile_name]['q_data'] = q_data       
           else:
-            st.session_state['quantiles_data'][quantile_names]['q_data'] = q_data
+            st.session_state['quantiles_data'][quantile_name]['q_data'] = q_data
         else:
-          st.session_state['quantiles_data'][quantile_names]['q_data'] = q_data
+          st.session_state['quantiles_data'][quantile_name]['q_data'] = q_data
         col_terms = st.selectbox(f'Current Variable: Number of Terms', 
                             terms_list, 
                             index=len(terms_list) - 1,
                             on_change=update_terms, 
-                            args=(quantile_names,data_type_str,quantile_index), 
-                            key=f"Column_Terms {quantile_names} {num}")
-        st.session_state['quantiles_data'][quantile_names]['col_terms'] = col_terms
+                            args=(quantile_name,data_type_str,quantile_index), 
+                            key=f"Column_Terms {quantile_name} {num}")
+        st.session_state['quantiles_data'][quantile_name]['col_terms'] = col_terms
         boundedness = st.selectbox(f'Current Variable: Boundedness', ("'u' - unbounded", 
                                                    "'sl' - semi-bounded lower", 
                                                    "'su' - semi-bounded upper",
@@ -1215,56 +1246,65 @@ elif data_type == 'Quantile':
                                                    kwargs = dict(refresh = True, 
                                                        data_type = data_type_str, 
                                                        quantile_count = quantile_index, 
-                                                       variable_name=quantile_names),
-                                                   key=f"Column_boundedness {quantile_names} {num}")
+                                                       variable_name=quantile_name),
+                                                   key=f"Column_boundedness {quantile_name} {num}")
         if boundedness == "'b' - bounded on both sides":
             #convert to float and list
+            if "Column_lower" in st.session_state:
+              st.session_state["Column_lower"] =  st.session_state["Column_lower"] if st.session_state["Column_lower"] <= q_data[quantile_name].min() else q_data[quantile_name].min() 
             boundsl = st.number_input('Lower Bound', 
-                                                            max_value = q_data[quantile_names].min(),
-                                                            value = q_data[quantile_names].min(),
+                                                            max_value = q_data[quantile_name].min(),
+                                                            value = q_data[quantile_name].min(),
                                                             on_change=update_boundedness,
                                                             kwargs = dict(refresh = True, 
                                                                data_type = data_type_str, 
                                                                quantile_count = quantile_index, 
-                                                               variable_name=quantile_names),
+                                                               variable_name=quantile_name),
                                                             key=f"Column_lower") 
             # seed_container.number_input('Lower Bound')
+            if "Column_upper" in st.session_state:
+              st.session_state["Column_upper"] =  st.session_state["Column_upper"] if st.session_state["Column_upper"] >= q_data[quantile_name].max() else q_data[quantile_name].max() 
             boundsu = st.number_input('Upper Bound', 
-                                                            min_value = q_data[quantile_names].max(),
-                                                            value = q_data[quantile_names].max(),
+                                                            min_value = q_data[quantile_name].max(),
+                                                            value = q_data[quantile_name].max(),
                                                             on_change=update_boundedness,
                                                             kwargs = dict(refresh = True, 
                                                                data_type = data_type_str, 
                                                                quantile_count = quantile_index, 
-                                                               variable_name=quantile_names),
+                                                               variable_name=quantile_name),
                                                             key=f"Column_upper")
             # seed_container.number_input('Upper Bound')
             bounds = [float(boundsl),float(boundsu)]
         elif boundedness.find("lower") != -1:
+            if "Column_lower" in st.session_state:
+              st.session_state["Column_lower"] =  st.session_state["Column_lower"] if st.session_state["Column_lower"] <= q_data[quantile_name].min() else q_data[quantile_name].min() 
             boundsl = st.number_input('Lower Bound', 
-                                                            max_value = q_data[quantile_names].min(),
-                                                            value = q_data[quantile_names].min(),
+                                                            max_value = q_data[quantile_name].min(),
+                                                            value = q_data[quantile_name].min(),
                                                             on_change=update_boundedness,
                                                             kwargs = dict(refresh = True, 
                                                                data_type = data_type_str, 
                                                                quantile_count = quantile_index, 
-                                                               variable_name=quantile_names),
+                                                               variable_name=quantile_name),
                                                             key=f"Column_lower") 
             bounds = [float(boundsl)]
         elif boundedness.find("upper") != -1:
+            print("q_data[quantile_name].max()",q_data[quantile_name].max(),)
+            if "Column_upper" in st.session_state:
+              st.session_state["Column_upper"] =  st.session_state["Column_upper"] if st.session_state["Column_upper"] >= q_data[quantile_name].max() else q_data[quantile_name].max() 
             boundsu = st.number_input('Upper Bound', 
-                                                            min_value = q_data[quantile_names].max(),
-                                                            value = q_data[quantile_names].max(),
+                                                            min_value = q_data[quantile_name].max(),
+                                                            # value = q_data[quantile_name].max(),
                                                             on_change=update_boundedness,
                                                             kwargs = dict(refresh = True, 
                                                                data_type = data_type_str, 
                                                                quantile_count = quantile_index, 
-                                                               variable_name=quantile_names),
+                                                               variable_name=quantile_name),
                                                             key=f"Column_upper")
             bounds = [float(boundsu)]
         else:
             bounds = [0,1]      
-        st.session_state['quantiles_data'][quantile_names]['bounds'] = bounds
+        st.session_state['quantiles_data'][quantile_name]['bounds'] = bounds
         # if "selected_column" in locals():
             # print('selected column is here!')
             # print("selected_column",selected_column)
@@ -1273,31 +1313,31 @@ elif data_type == 'Quantile':
                 # st.session_state["Column_Terms"] = st.session_state['mfitted'][data_type_str][selected_column]['options']['terms'] if st.session_state['mfitted'][data_type_str][selected_column]['options']['terms'] else number_of_quantiles
             
         boundedness = boundedness.strip().split(" - ")[0].replace("'","")
-        st.session_state['quantiles_data'][quantile_names]['boundedness'] = boundedness
+        st.session_state['quantiles_data'][quantile_name]['boundedness'] = boundedness
         # print('st.session_state["Column_Terms"]',st.session_state["Column_Terms"])
         seed_container = st.container()
         seed_container.write("Enter HDR Seed Values Below:")
         left_values, right_values = seed_container.columns(2)
         seed_data = [left_values.text_input(f'entity',value=0,
                                                                 on_change=update_seeds,
-                                                                kwargs=dict(data_type=data_type_str, variable_name=quantile_names),
-                                                                key=f"entity {quantile_names}"),
+                                                                kwargs=dict(data_type=data_type_str, variable_name=quantile_name),
+                                                                key=f"entity {quantile_name}"),
                             right_values.text_input(f'varId',
                                                                 value=num,
                                                                 on_change=update_seeds,
-                                                                kwargs=dict(data_type=data_type_str, variable_name=quantile_names),
-                                                                key=f"varId {quantile_names}"),
+                                                                kwargs=dict(data_type=data_type_str, variable_name=quantile_name),
+                                                                key=f"varId {quantile_name}"),
                             left_values.text_input(f'seed 3',
                                                                 value=0,
                                                                 on_change=update_seeds,
-                                                                kwargs=dict(data_type=data_type_str, variable_name=quantile_names),
-                                                                key=f"seed3 {quantile_names}"),
+                                                                kwargs=dict(data_type=data_type_str, variable_name=quantile_name),
+                                                                key=f"seed3 {quantile_name}"),
                             right_values.text_input(f'seed 4',
                                                                 value=0,
                                                                 on_change=update_seeds,
-                                                                kwargs=dict(data_type=data_type_str, variable_name=quantile_names),
-                                                                key=f"seed4 {quantile_names}")]  
-        st.session_state['quantiles_data'][quantile_names]['seeds'] = {
+                                                                kwargs=dict(data_type=data_type_str, variable_name=quantile_name),
+                                                                key=f"seed4 {quantile_name}")]  
+        st.session_state['quantiles_data'][quantile_name]['seeds'] = {
                                    'name':'hdr'+str(num),
                                    'function':'HDR_2_0',
                                    'arguments': {'counter':'PM_Index',
@@ -1312,10 +1352,10 @@ elif data_type == 'Quantile':
         run_calculations = True
         left_values.markdown("")
         right_values.markdown("")
-        st.session_state['quantiles_data'][quantile_names]['make_graphs_button'] = make_graphs_button
-        st.session_state['quantiles_data'][quantile_names]['run_calculations'] = run_calculations
-        if st.session_state['quantiles_data'][quantile_names]['make_graphs_button'] or st.session_state['quantiles_data'][quantile_names]['run_calculations']:
-          st.session_state["Big Graph Column"] = quantile_names
+        st.session_state['quantiles_data'][quantile_name]['make_graphs_button'] = make_graphs_button
+        st.session_state['quantiles_data'][quantile_name]['run_calculations'] = run_calculations
+        if st.session_state['quantiles_data'][quantile_name]['make_graphs_button'] or st.session_state['quantiles_data'][quantile_name]['run_calculations']:
+          st.session_state["Big Graph Column"] = quantile_name
             #add SPT normal or three terms                                                                
             # update_seeds(data_type_str)                                         
             # if num < quantile_number_variable:
@@ -1328,8 +1368,8 @@ elif data_type == 'Quantile':
     # with quanile_container.expander("Correlation Matrix Input"):     
         # st.write('sodm')
     print("data",st.session_state['quantiles_data'])
-    # pd_data = pd.DataFrame(q_data,columns=['',*quantile_names]).set_index('')
-    pd_data = pd.concat([st.session_state['quantiles_data'][x[1]]['q_data'] for x in enumerate(st.session_state['quantiles_data']) if x[0] < quantile_number_variable])
+    # pd_data = pd.DataFrame(q_data,columns=['',*quantile_name]).set_index('')
+    pd_data = pd.concat([st.session_state['quantiles_data'][x[1]]['q_data'] for x in enumerate(st.session_state['quantiles_data']) if x[0] < quantile_number_variable and 'q_data' in st.session_state['quantiles_data'][x[1]]])
     print(pd_data)
     if isinstance(pd_data, pd.DataFrame):
         st.session_state["column_index"] = {k:v for v,k in enumerate(pd_data.columns)}
@@ -1362,7 +1402,11 @@ elif data_type == 'Quantile':
         # empty_table.empty()
     # selected_column = graphs_container.selectbox("Select Current Variable:",  pd_data.columns, key="Big Graph Column")     
     st.session_state["Big Graph Column"] = st.session_state[f"Quantile Name {st.session_state['quantile_counter']}"]
-    selected_column = graphs_container.selectbox("Select Current Variable:",  [x for x in pd_data.columns],on_change=update_input_name, key="Big Graph Column") 
+    variable_list =  [x for x in pd_data.columns]
+    if "Big Graph Column" in st.session_state and not st.session_state["Big Graph Column"] in variable_list:
+      variable_list.append(st.session_state["Big Graph Column"])
+    print('variable_list',variable_list)
+    selected_column = graphs_container.selectbox("Select Current Variable:", variable_list ,on_change=update_input_name, key="Big Graph Column") 
     # upper_bound, lower_bound = seed_container.columns(2)
     #TODO: error handling for value too small for upper bounds or letter         
     # if not run_calculations:
