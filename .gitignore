@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# SIPmath files
+*.SIPmath
+
 # C extensions
 *.so
 
