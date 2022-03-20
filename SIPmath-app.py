@@ -1054,7 +1054,31 @@ if data_type == 'CSV File':
             seed_container.write("Enter HDR Seed Values Below:")
             left_values, right_values = seed_container.columns(2)
             make_graphs_checkbox = left_buttons.button("Make Graph Panel")   
-            if not make_graphs_checkbox:
+            apply_all = right_buttons.button("Apply to All Variables")
+            if apply_all:
+              for i,col in enumerate(input_df.columns):
+                # if not col in  st.session_state['mfitted'][data_type_str]:
+                input_df[[col]].apply(make_csv_graph,
+                                                     probs = np.nan,
+                                                     boundedness = boundedness,
+                                                     bounds = bounds,
+                                                     big_plots = True,
+                                                     user_terms = col_terms,
+                                                     graphs = False )
+                st.session_state['mfitted'][data_type_str][col]['options']['seeds'] = {
+                                                                           'name':'hdr'+str(st.session_state["column_index"][col]+1),
+                                                                           'function':'HDR_2_0',
+                                                                           'arguments': {'counter':'PM_Index',
+                                                                                                'entity' : "0" ,
+                                                                                                'varId' : str(i+1),
+                                                                                                'seed3' : "0",
+                                                                                                'seed4' : "0" }}
+                if default_column != col and st.session_state['mfitted'][data_type_str][col]['options']['seeds']['arguments']["varId"] is None:
+                    st.session_state['mfitted'][data_type_str][col]['options']['seeds']['arguments']["varId"]  =  str(float(st.session_state['mfitted'][data_type_str][col]['options']['seeds']['arguments']["varId"] ) + st.session_state["column_index"][col])
+           
+                print('assigned seeds')
+            
+            if not make_graphs_checkbox and not apply_all:
               input_df[[selected_column]].apply(make_csv_graph,
                                              probs = np.nan,
                                              boundedness = boundedness,
@@ -1062,29 +1086,6 @@ if data_type == 'CSV File':
                                              big_plots = True,
                                              user_terms = col_terms,
                                              graphs = False )
-            if right_buttons.button("Apply to All Variables"):
-              for i,col in enumerate(input_df.columns):
-                if not col in  st.session_state['mfitted'][data_type_str]:
-                  input_df[[col]].apply(make_csv_graph,
-                                                       probs = np.nan,
-                                                       boundedness = boundedness,
-                                                       bounds = bounds,
-                                                       big_plots = True,
-                                                       user_terms = col_terms,
-                                                       graphs = False )
-                  st.session_state['mfitted'][data_type_str][col]['options']['seeds'] = {
-                                                                             'name':'hdr'+str(st.session_state["column_index"][selected_column]+1),
-                                                                             'function':'HDR_2_0',
-                                                                             'arguments': {'counter':'PM_Index',
-                                                                                                  'entity' : "0" ,
-                                                                                                  'varId' : str(i+1),
-                                                                                                  'seed3' : "0",
-                                                                                                  'seed4' : "0" }}
-                  if default_column != col and st.session_state['mfitted'][data_type_str][col]['options']['seeds']['arguments']["varId"] is None:
-                      st.session_state['mfitted'][data_type_str][col]['options']['seeds']['arguments']["varId"]  =  str(float(st.session_state['mfitted'][data_type_str][col]['options']['seeds']['arguments']["varId"] ) + st.session_state["column_index"][col])
-             
-                print('assigned seeds')
-            
             previous_button =  left_buttons.button("Previous Variable",on_click = update_counter,args=(-1,),key=f"previous_button")
             next_button = right_buttons.button("Next Variable",on_click = update_counter,args=(1,),key=f"next_button") 
             if 'mfitted' in st.session_state and selected_column in st.session_state['mfitted'][data_type_str] and 'seeds' not in st.session_state['mfitted'][data_type_str][selected_column]['options']:
