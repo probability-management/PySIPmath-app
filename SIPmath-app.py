@@ -850,7 +850,7 @@ def input_data(name,i,df,probs=None):
           check_correlation_df = correlation_df.fillna(correlation_df.T)
           print("check_correlation_df",check_correlation_df)
           correlation_check_run = True
-          if correlation_container[1].button('Store Correlation', key='correlation_done'):
+          if correlation_container[number_variables-1].button('Store Correlation', key='correlation_done'):
             print('ran correlation check')
             print(np.linalg.eigvals(check_correlation_df.to_numpy()))
             correlation_check_run = np.all(np.linalg.eigvals(check_correlation_df.to_numpy()) > 0)
