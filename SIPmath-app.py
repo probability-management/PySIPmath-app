@@ -632,6 +632,7 @@ def update_input_name():
   st.session_state["quantile_counter"]  = st.session_state['quantiles_data'][st.session_state["Big Graph Column"]]['pos']
 
 def update_variable_count():
+  if "Number of Quantiles Variables" in st.session_state:
     st.session_state['quantiles_variable_count'] = st.session_state["Number of Quantiles Variables"] 
 
 def update_counter(value):
@@ -846,10 +847,17 @@ def input_data(name,i,df,probs=None):
           print("corrs_data", corrs_data)
           correlation_df = pd.DataFrame(corrs_data,columns=df.columns,index=df.columns)
           st.session_state['quantiles_data']['correlations'] = correlation_df
+          check_correlation_df = correlation_df.fillna(correlation_df.T)
+          print("check_correlation_df",check_correlation_df)
+          correlation_check_run = True
           if graphs_container.button('Store Correlation', key='correlation_done'):
-            if not np.all(np.linalg.eigvals(correlation_df.fillna(0)) > 0):
-              graphs_container.warning("")
-              st.stop()
+            print('ran correlation check')
+            print(np.linalg.eigvals(check_correlation_df.to_numpy()))
+            correlation_check_run = np.all(np.linalg.eigvals(check_correlation_df.to_numpy()) > 0)
+            if not correlation_check_run:
+              graphs_container.warning("The correlation matrix needs to be feasible.")
+              # st.stop()
+            
           print(correlation_df)
             # pass
         if dependence != 'independent':
