@@ -830,7 +830,7 @@ def input_data(name,i,df,probs=None):
         if dependence == "Correlation Matrix":
           number_variables = len(data_columns)
           print(number_variables)
-          correlation_container = graphs_container.columns(number_variables)
+          correlation_container = slider_container.columns(number_variables)
           if 'quantiles_data' in st.session_state and 'correlations' in st.session_state['quantiles_data']:
             saved_df = st.session_state['quantiles_data']['correlations']
             for row in df.columns:
@@ -850,12 +850,12 @@ def input_data(name,i,df,probs=None):
           check_correlation_df = correlation_df.fillna(correlation_df.T)
           print("check_correlation_df",check_correlation_df)
           correlation_check_run = True
-          if graphs_container.button('Store Correlation', key='correlation_done'):
+          if correlation_container[1].button('Store Correlation', key='correlation_done'):
             print('ran correlation check')
             print(np.linalg.eigvals(check_correlation_df.to_numpy()))
             correlation_check_run = np.all(np.linalg.eigvals(check_correlation_df.to_numpy()) > 0)
             if not correlation_check_run:
-              graphs_container.warning("The correlation matrix needs to be feasible.")
+              correlation_container[0].warning("The correlation matrix needs to be feasible.")
               # st.stop()
             
           print(correlation_df)
