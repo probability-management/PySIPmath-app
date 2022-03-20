@@ -1121,6 +1121,7 @@ if data_type == 'CSV File':
             update_seeds(data_type_str)
             print(f"seed_data is {seed_data}")
             big_plots = True
+            
             if make_graphs_checkbox or all(input_df.any()):
                 if make_graphs_checkbox:
                   # pass
