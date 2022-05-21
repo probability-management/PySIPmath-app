@@ -59,7 +59,7 @@ def check_password():
         st.text_input(
             "Password", type="password", on_change=password_entered, key="password"
         )
-         return False
+        return False
     elif not st.session_state["password_correct"]:
         # Password not correct, show input + error.
         st.text_input(
