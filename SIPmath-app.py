@@ -35,7 +35,8 @@ def get_img_with_href(local_img_path, target_url):
             <img src="data:image/{img_format};base64,{bin_str}" height="125"; />
         </a>'''
     return html_code
-path = os.path.dirname(__file__)
+#path = os.path.dirname(__file__)
+path = "."
 # PM_logo = Image.open(path+'/images/PM_logo.png')
 # Metalog_Distribution = Image.open(path+'/images/Metalog Distribution.png')
 # HDR_Generator = Image.open(path+'/images/HDR Generator.png')
