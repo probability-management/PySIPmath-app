@@ -55,20 +55,20 @@ path = os.path.dirname(__file__)
             # st.session_state["password_correct"] = False
 
     # if "password_correct" not in st.session_state:
-        # # First run, show input for password.
+        # First run, show input for password.
         # st.text_input(
             # "Password", type="password", on_change=password_entered, key="password"
         # )
         # return False
     # elif not st.session_state["password_correct"]:
-        # # Password not correct, show input + error.
+        # Password not correct, show input + error.
         # st.text_input(
             # "Password", type="password", on_change=password_entered, key="password"
         # )
         # st.error("😕 Password incorrect")
         # return False
     # else:
-        # # Password correct.
+        # Password correct.
         # return True
 
 # if check_password():
