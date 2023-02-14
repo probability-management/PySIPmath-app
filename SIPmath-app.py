@@ -103,21 +103,6 @@ graphs_container_main = st.empty().container()
 #Taken from the metalog
 # @st.cache(suppress_st_warning=True)
 
-st.markdown(
-    """
-    <style>
-    [data-testid="stSidebar"][aria-expanded="true"] > div:first-child {
-        width: 500px;
-    }
-    [data-testid="stSidebar"][aria-expanded="false"] > div:first-child {
-        width: 500px;
-        margin-left: -500px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 def plot(m, big_plots=None,csv=None,term=None,name=None,key=None):
     # st.write(m)
     # print("is_quantile is ",is_quantile," csv is ",csv)
